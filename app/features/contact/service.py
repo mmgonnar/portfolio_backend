@@ -11,19 +11,15 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 class ContactService:
     @staticmethod
     def submit_contact(message: ContactMessage):
-        # 1. Validación Honeypot
         if message.phone_extension:
             print("Bot detectado por honeypot")
             return {"status": "success", "message": "Processed"}
 
-        # 2. Generar Identificador Único
         ticket_id = f"REF-{str(uuid.uuid4())[:8].upper()}"
 
         try:
-            # 3. Guardar en Base de Datos (Prioridad)
             data = ContactData.save(message)
 
-            # 4. Intentar enviar correo con Resend
             if resend.api_key:
                 try:
                     resend.Emails.send({
@@ -42,12 +38,10 @@ class ContactService:
                         """
                     })
                 except Exception as mail_error:
-                    # Si falla el mail, lo logueamos pero no detenemos el proceso
                     print(f"Error enviando correo con Resend: {mail_error}")
             else:
                 print("Advertencia: RESEND_API_KEY no configurada.")
 
-            # 5. RETORNO SIEMPRE AL FINAL DEL TRY
             return {
                 "status": "success", 
                 "data": data, 
