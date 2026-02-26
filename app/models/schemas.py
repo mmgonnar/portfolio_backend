@@ -1,4 +1,3 @@
-from tkinter import N
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
