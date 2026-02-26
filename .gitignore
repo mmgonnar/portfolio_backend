@@ -32,8 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 venv/
-env/
+.venv/
+__pycache__/
 .env
+.DS_Store
 
 # vercel
 .vercel
