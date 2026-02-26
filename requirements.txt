@@ -4,3 +4,4 @@ gunicorn
 supabase
 python-dotenv
 email-validator
+resend

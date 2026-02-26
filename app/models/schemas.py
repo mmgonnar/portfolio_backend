@@ -5,6 +5,7 @@ class ContactMessage(BaseModel):
     name: str
     email: EmailStr
     message: str
+    phone_extension: Optional[str] = None
 
 class Projects(BaseModel):
     id: Optional[int] = None
