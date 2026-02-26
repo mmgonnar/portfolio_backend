@@ -11,7 +11,8 @@ origins = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
-    "https://www.mmgonnar.com/"
+    "https://www.mmgonnar.com",
+    "https://portfolio-backend-tarb.onrender.com"
 ]
 
 app.add_middleware(
