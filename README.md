@@ -2,6 +2,8 @@
 
 This repository contains a small FastAPI backend used for a personal portfolio site.
 
+Frontend: [mmgonnar.com](https://www.mmgonnar.com/)
+
 It exposes endpoints to:
 
 - **Health check**: confirm the API is running.
