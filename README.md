@@ -6,7 +6,7 @@ It exposes endpoints to:
 
 - **Health check**: confirm the API is running.
 - **Projects**: fetch portfolio projects stored in Supabase.
-- **Contact**: submit contact messages, which are persisted to Supabase.
+- **Contact**: submit contact messages, persisted to Supabase, and optionally emailed via Resend.
 
 ---
 
@@ -48,6 +48,9 @@ Create a `.env` file in the project root with your Supabase credentials:
 ```bash
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_service_role_or_anon_key
+
+# Optional (enables email notifications on contact submit)
+RESEND_API_KEY=your_resend_api_key
 ```
 
 The app will raise an error at startup if these variables are missing.
@@ -87,7 +90,8 @@ Base URL examples:
   - `http://localhost:3000`
   - `http://localhost:5173`
   - `http://127.0.0.1:3000`
-  - `https://www.mmgonnar.com/`
+  - `https://www.mmgonnar.com`
+  - `https://portfolio-backend-tarb.onrender.com`
 
 ### `GET /`
 
@@ -121,13 +125,28 @@ Example project shape (from `Projects` schema):
 
 - **Description**: Submit a contact message.
 - **Backed by**: Supabase table `portfolio_contact`.
+- **Extra behavior**:
+  - If `RESEND_API_KEY` is configured, an email notification is sent via Resend (best-effort; failures are logged but do not fail the request).
+  - A honeypot field `phone_extension` is accepted to detect bots; if it is present, the API short-circuits and returns success without storing/sending.
+  - A `ticket_id` like `REF-XXXXXXXX` is generated and returned on successful processing.
 - **Request body** (`ContactMessage`):
 
 ```json
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "message": "Hi, I love your work!"
+  "message": "Hi, I love your work!",
+  "phone_extension": null
+}
+```
+
+Example success response:
+
+```json
+{
+  "status": "success",
+  "data": [{ "id": 123, "name": "John Doe", "email": "john@example.com", "message": "..." }],
+  "ticket_id": "REF-1A2B3C4D"
 }
 ```
 
