@@ -1,6 +1,6 @@
 import os
-from dotenv import load_dotenv
-from supabase import create_client, Client
+from dotenv import load_dotenv # type: ignore[import-not-found]
+from supabase import create_client, Client # type: ignore[import-not-found]
 
 # Carga las variables del archivo .env
 load_dotenv()

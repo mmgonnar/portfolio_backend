@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr  # type: ignore[import-not-found]
 from typing import Optional
 
 class ContactMessage(BaseModel):

@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI # type: ignore[import-not-found]
+from fastapi.middleware.cors import CORSMiddleware # type: ignore[import-not-found]
 from app.features.projects.service import ProjectService
 from app.models.schemas import ContactMessage
 

@@ -1,9 +1,9 @@
-import resend
+import resend # type: ignore[import-not-found]
 import os
 import uuid
 from app.features.contact.data import ContactData
 from app.models.schemas import ContactMessage
-from fastapi import HTTPException
+from fastapi import HTTPException # type: ignore[import-not-found]
 
 # Cargamos la API Key una sola vez
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -52,5 +52,5 @@ class ContactService:
             print(f"Error crítico en submit_contact: {e}")
             raise HTTPException(
                 status_code=500, 
-                detail="No se pudo procesar el mensaje internamente"
+                detail="No se pudo procesar el mensaje internamente. Por favor intente mas tarde"
             )
