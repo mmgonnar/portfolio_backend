@@ -1,9 +1,12 @@
+from sys import prefix
+from app.models import brief
 from fastapi import FastAPI # type: ignore[import-not-found]
 from fastapi.middleware.cors import CORSMiddleware # type: ignore[import-not-found]
 from app.features.projects.service import ProjectService
 from app.models.schemas import ContactMessage
 
 from app.features.contact.service import ContactService
+from routes.brief_routes import router as brief_router
 
 app = FastAPI()
 
@@ -22,6 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(brief_router, prefix="/api/v1", tags=["Brief"])
 
 @app.get("/")
 def home():
