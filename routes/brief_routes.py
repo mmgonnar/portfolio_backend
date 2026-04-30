@@ -1,25 +1,54 @@
-from fastapi import APIRouter, HTTPException  # type: ignore[import-not-found]
+from fastapi import APIRouter, HTTPException, Depends  # type: ignore[import-not-found]
 from app.models.brief import BriefSubmission
-from supabase import create_client  # type: ignore[import-not-found]
+from supabase import  create_client, Client # type: ignore[import-not-found]
+import os
+from functools     import lru_cache
+
+import logging
+
+from functools     import lru_cache
+
+from app.models.brief import BriefSubmission
 import os
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-supabase = create_client(url, key)
+# ─── Dependencia de Supabase ──────────────────────────────────────────────────
+@lru_cache
+def get_supabase() -> Client:
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    if not url or not key:
+        raise RuntimeError("SUPABASE_URL y SUPABASE_KEY son requeridas")
+    return create_client(url, key)
 
+# ─── Endpoint ─────────────────────────────────────────────────────────────────
 @router.post('/send-brief')
-async def handle_brief(brief:BriefSubmission):
+async def handle_brief(
+    brief:    BriefSubmission,
+    supabase: Client = Depends(get_supabase),
+):
     try:
-        data_to_save = brief.dict()
+        data_to_save = brief.model_dump()  # ✅ Pydantic v2
 
         res = supabase.table('design_briefs').insert({
-            'client_name': brief.name,
+            'client_name':  brief.name,
             'client_email': brief.email,
             'project_name': brief.projectName,
-            'full_data': data_to_save
+            'project_type': brief.projectType.value,  # ✅ .value del enum
+            'full_data':    data_to_save,
         }).execute()
-        return {"status": "success", "message": "¡Brief guardado!"}
+
+        return {
+            "status":  "success",
+            "message": "Brief guardado correctamente",
+            "id":      res.data[0]["id"],  # ✅ retorna el ID generado
+        }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al conectar con la DB: {str(e)}")
+        logger.error(f"Error guardando brief: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error interno del servidor",  # ✅ no expone internals
+        )
