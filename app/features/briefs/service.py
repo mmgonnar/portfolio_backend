@@ -76,27 +76,27 @@ class BriefService:
             <h2 style="color: #1a1a1a;">📋 Nuevo Brief Recibido</h2>
 
             <table style="width: 100%; border-collapse: collapse;">
-                <tr>
+                <tr style="background: #f9f9f9;">
                     <td style="padding: 8px; font-weight: bold; color: #555; width: 40%;">Cliente</td>
                     <td style="padding: 8px;">{brief.name}</td>
                 </tr>
-                <tr style="background: #f9f9f9;">
+                <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Email</td>
                     <td style="padding: 8px;">{brief.email}</td>
                 </tr>
-                <tr>
+                <tr style="background: #f9f9f9;">
                     <td style="padding: 8px; font-weight: bold; color: #555;">Proyecto</td>
                     <td style="padding: 8px;">{brief.projectName}</td>
                 </tr>
-                <tr style="background: #f9f9f9;">
+                <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Tipo</td>
                     <td style="padding: 8px;">{brief.projectType.value}</td>
                 </tr>
-                <tr>
+                <tr style="background: #f9f9f9;">
                     <td style="padding: 8px; font-weight: bold; color: #555;">Presupuesto</td>
                     <td style="padding: 8px;">{brief.budget.value}</td>
                 </tr>
-                <tr style="background: #f9f9f9;">
+                <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Timeline</td>
                     <td style="padding: 8px;">{brief.timeline.value}</td>
                 </tr>
