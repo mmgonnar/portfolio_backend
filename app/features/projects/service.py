@@ -2,6 +2,7 @@ import http
 from app.features.projects.data import ProjectData
 from fastapi import HTTPException
 
+
 class ProjectService:
     @staticmethod
     def list_projects():
