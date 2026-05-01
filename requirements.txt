@@ -5,3 +5,4 @@ supabase
 python-dotenv
 email-validator
 resend
+fpdf2
