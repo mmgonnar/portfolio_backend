@@ -6,7 +6,7 @@ from enum import Enum
 # ─── Enums ────────────────────────────────────────────────────────────────────
 class ProjectType(str, Enum):
     website = "website"
-    ecommerce = "ecommerce"
+    wordpress = "wordpress"
     landing = "landing"
     webapp = "webapp"
     redesign = "redesign"
