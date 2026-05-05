@@ -13,66 +13,55 @@ class ProjectType(str, Enum):
     other = "other"
 
 
-class VisualStyle(str, Enum):
-    minimalist = "minimalist"
-    bold = "bold"
-    corporate = "corporate"
-    playful = "playful"
-    elegant = "elegant"
-    tech = "tech"
-    not_sure = "not_sure"
-
-
 class BudgetRange(str, Enum):
-    under_1k = "under_1k"
-    range_1k_3k = "1k_3k"
-    range_3k_5k = "3k_5k"
-    range_5k_10k = "5k_10k"
-    over_10k = "over_10k"
+    r1 = "r1"
+    r2 = "r2"
+    r3 = "r3"
+    r4 = "r4"
+    r5 = "r5"
     not_defined = "not_defined"
 
 
 class Timeline(str, Enum):
     asap = "asap"
-    one_month = "1_month"
-    one_3_months = "1_3_months"
-    three_6_months = "3_6_months"
+    one_month = "one_month"
+    one_3_months = "one_3_months"
+    two_three_months = "two_three_months"
     flexible = "flexible"
 
 
 # ─── Modelo ───────────────────────────────────────────────────────────────────
 class BriefSubmission(BaseModel):
-    model_config = ConfigDict(extra="forbid")  # ✅ rechaza campos no declarados
+    model_config = ConfigDict(extra="allow") 
 
     # Paso 1 — Contacto
     name: str = Field(..., min_length=2)
     email: EmailStr
     phone: Optional[str] = None
     company: Optional[str] = None
-    role: Optional[str] = None
 
     # Paso 2 — Proyecto
-    projectType: ProjectType
-    projectName: str = Field(..., min_length=2)
-    projectDescription: str = Field(..., min_length=20)
+    projectType: Optional[str] = None
+    projectName: Optional[str] = None
+    projectDescription: Optional[str] = None
     hasExistingSite: bool = False
     existingSiteUrl: Optional[str] = None
 
     # Paso 3 — Features
-    features: List[str] = Field(..., min_length=1)
+    features: List[str] = Field(default_factory=list)
     featuresDetail: Optional[str] = None
 
     # Paso 4 — Estilo y audiencia
-    targetAudience: str = Field(..., min_length=10)
+    targetAudience: Optional[str] = None
     competitors: Optional[str] = None
-    visualStyle: VisualStyle
+    visualStyle: Optional[str] = None
     visualReferences: Optional[str] = None
-    brandColors: bool = False
+    brandColors: Optional[str] = None
     brandAssetsReady: bool = False
 
     # Paso 5 — Presupuesto
-    budget: BudgetRange
-    timeline: Timeline
+    budget: Optional[str] = None
+    timeline: Optional[str] = None
     flexibleBudget: bool = False
     additionalNotes: Optional[str] = None
 

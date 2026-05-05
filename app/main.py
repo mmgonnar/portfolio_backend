@@ -4,8 +4,6 @@ from app.features.projects.service import ProjectService
 from app.models.schemas import ContactMessage
 
 from app.features.contact.service import ContactService
-from routes.brief_routes import router as brief_router
-
 from app.features.briefs.router import router as brief_router
 
 app = FastAPI()
@@ -15,6 +13,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:3000",
     "https://www.mmgonnar.com",
+    "https://mmgonnar.com",
     "https://portfolio-backend-tarb.onrender.com",
 ]
 

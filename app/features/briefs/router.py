@@ -28,51 +28,109 @@ async def handle_brief(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
     email: str = Form(...),
-    projectName: str = Form(...),
+    phone: str = Form(""),
+    company: str = Form(""),
+    projectName: str = Form(""),
     projectType: str = Form(...),
-    description: str = Form(...),
+    projectDescription: str = Form(...),
+    hasExistingSite: bool = Form(False),
+    existingSiteUrl: str = Form(""),
+    features: str = Form(...),
+    featuresDetail: str = Form(""),
+    targetAudience: str = Form(""),
+    competitors: str = Form(""),
+    visualStyle: str = Form(""),
+    visualReferences: str = Form(""),
+    brandColors: str = Form(""),
+    brandAssetsReady: bool = Form(False),
     budget: str = Form(...),
     timeline: str = Form(...),
-    features: str = Form(...), 
-    referenceLinks: str = Form(""),
+    flexibleBudget: bool = Form(False),
     additionalNotes: str = Form(""),
+    locale: str = Form("en"),
+    referenceLinks: str = Form(""),
     attachments: List[UploadFile] = File(None),
     supabase: Client = Depends(get_supabase),
 ):
     try:
         # 1. Procesar datos
-        features_list = json.loads(features)
-        
+        try:
+            features_list = json.loads(features) if features else []
+        except json.JSONDecodeError:
+            features_list = features.split(",") if features else []
+
+        # Build data_to_save with default values for BriefSubmission
+        project_type_value = projectType if projectType else "website"
+        budget_value = budget if budget else "not_defined"
+        timeline_value = timeline if timeline else "flexible"
+
         data_to_save = {
             "name": name,
             "email": email,
-            "projectName": projectName,
-            "projectType": projectType,
-            "description": description,
+            "phone": phone,
+            "company": company,
+            "projectName": projectName or company,
+            "projectType": project_type_value,
+            "projectDescription": projectDescription,
+            "hasExistingSite": hasExistingSite,
+            "existingSiteUrl": existingSiteUrl,
             "features": features_list,
-            "budget": budget,
-            "timeline": timeline,
-            "referenceLinks": referenceLinks,
+            "featuresDetail": featuresDetail,
+            "targetAudience": targetAudience,
+            "competitors": competitors,
+            "visualStyle": visualStyle,
+            "visualReferences": visualReferences,
+            "brandColors": brandColors or False,
+            "brandAssetsReady": brandAssetsReady,
+            "budget": budget_value,
+            "timeline": timeline_value,
+            "flexibleBudget": flexibleBudget,
             "additionalNotes": additionalNotes,
+            "locale": locale,
+            "referenceLinks": referenceLinks,
         }
 
         # 2. Guardar en Supabase
-        res = (
-            supabase.table("design_briefs")
-            .insert({
-                "client_name": name,
-                "client_email": email,
-                "project_name": projectName,
-                "project_type": projectType,
-                "full_data": data_to_save,
-            })
-            .execute()
-        )
+        supabase_data = {
+            "client_name": name,
+            "client_email": email,
+            "client_phone": phone,
+            "company": company,
+            "project_name": projectName or company,
+            "project_type": project_type_value,
+            "budget": budget_value,
+            "timeline": timeline_value,
+            "locale": locale,
+            "full_data": data_to_save,
+        }
+        
+        # Filter out empty strings for optional fields
+        supabase_data = {k: v for k, v in supabase_data.items() if v}
+        
+        try:
+            res = supabase.table("design_briefs").insert(supabase_data).execute()
+        except Exception as supabase_err:
+            # Fallback: insert only required fields
+            print(f"⚠️ Supabase insert error: {supabase_err}")
+            try:
+                res = supabase.table("design_briefs").insert({
+                    "client_name": name,
+                    "client_email": email,
+                    "project_type": project_type_value,
+                    "full_data": data_to_save,
+                }).execute()
+            except Exception as e2:
+                logger.error(f"Supabase fallback also failed: {e2}")
+                # Still fail but with clearer error
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Database error: {str(e2)}",
+                )
 
         brief_id = res.data[0]["id"]
         print(f"✅ Supabase OK — ID: {brief_id}")
 
-        # 3. Generar PDF + Enviar correo 
+        # 3. Generar PDF + Enviar correo
         # IMPORTANTE: Pasamos data_to_save porque 'brief' (Pydantic) ya no se usa aquí
         brief_object = BriefSubmission(**data_to_save)
 

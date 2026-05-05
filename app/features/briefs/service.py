@@ -90,15 +90,15 @@ class BriefService:
                 </tr>
                 <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Tipo</td>
-                    <td style="padding: 8px;">{brief.projectType.value}</td>
+                    <td style="padding: 8px;">{brief.projectType}</td>
                 </tr>
                 <tr style="background: #f9f9f9;">
                     <td style="padding: 8px; font-weight: bold; color: #555;">Presupuesto</td>
-                    <td style="padding: 8px;">{brief.budget.value}</td>
+                    <td style="padding: 8px;">{brief.budget}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Timeline</td>
-                    <td style="padding: 8px;">{brief.timeline.value}</td>
+                    <td style="padding: 8px;">{brief.timeline}</td>
                 </tr>
             </table>
 
