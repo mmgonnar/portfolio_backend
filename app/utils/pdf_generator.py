@@ -81,9 +81,8 @@ def generate_brief_pdf(data: dict):
             [
                 ("Nombre del Contacto", "name"),
                 ("Email", "email"),
-                ("Teléfono", "phone"),  # Campo agregado
+                ("Teléfono", "phone"),
                 ("Empresa", "company"),
-                ("Rol en la empresa", "role"),  # Campo agregado
             ],
         ),
         (
@@ -99,8 +98,8 @@ def generate_brief_pdf(data: dict):
         (
             "FUNCIONALIDADES REQUERIDAS",
             [
-                ("Funciones clave", "features"),  # Lista de features agregada
-                ("Detalle de funciones", "featuresDetail"),  # Detalle agregado
+                ("Funciones clave", "features"),
+                ("Detalle de funciones", "featuresDetail"),
             ],
         ),
         (
@@ -109,18 +108,30 @@ def generate_brief_pdf(data: dict):
                 ("Público objetivo", "targetAudience"),
                 ("Competencia", "competitors"),
                 ("Estilo Visual", "visualStyle"),
-                ("Referencias Visuales", "visualReferences"),  # Etiqueta corregida
-                ("¿Tiene colores de marca?", "brandColors"),
+                ("Referencias Visuales", "visualReferences"),
+                ("Colores de marca", "brandColors"),
                 ("¿Assets listos?", "brandAssetsReady"),
             ],
         ),
         (
             "PRESUPUESTO Y TIEMPOS",
             [
-                ("Presupuesto ($)", "budget"),
+                ("Presupuesto", "budget"),
                 ("Tiempo para el proyecto", "timeline"),
                 ("¿Presupuesto flexible?", "flexibleBudget"),
                 ("Notas adicionales", "additionalNotes"),
+            ],
+        ),
+        (
+            "IDIOMA",
+            [
+                ("Idioma", "locale"),
+            ],
+        ),
+        (
+            "ARCHIVOS ADJUNTOS",
+            [
+                ("Archivos subidos", "files"),
             ],
         ),
     ]

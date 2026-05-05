@@ -2,6 +2,8 @@ import os
 import resend  # type: ignore[import-not-found]
 import logging
 
+from typing import List, Optional
+from fastapi import UploadFile
 from app.models.brief import BriefSubmission
 from app.utils.pdf_generator import generate_brief_pdf
 
@@ -11,12 +13,12 @@ logger = logging.getLogger(__name__)
 class BriefService:
 
     @staticmethod
-    def submit_brief(brief: BriefSubmission) -> dict:
+    async def submit_brief(brief: BriefSubmission, attachments: List[UploadFile] = None) -> dict:
         data = brief.model_dump()
         pdf_path = generate_brief_pdf(data)
         logger.info(f"PDF generado: {pdf_path}")
 
-        BriefService._send_email(brief, pdf_path)
+        await BriefService._send_email(brief, pdf_path, attachments)
 
         return {
             "status": "success",
@@ -25,7 +27,7 @@ class BriefService:
         }
 
     @staticmethod
-    def _send_email(brief: BriefSubmission, pdf_path: str) -> None:
+    async def _send_email(brief: BriefSubmission, pdf_path: str, attachments: List[UploadFile] = None) -> None:
         api_key = os.environ.get("RESEND_API_KEY")
 
         if not api_key:
@@ -35,27 +37,43 @@ class BriefService:
         resend.api_key = api_key
 
         try:
+            # Read PDF
             with open(pdf_path, "rb") as f:
                 pdf_bytes = f.read()
 
-            attachment_name = f"Brief_{brief.projectName}.pdf"
+            pdf_attachment_name = f"Brief_{brief.projectName or brief.name or 'Project'}.pdf"
 
-            print(f"PDF path: {pdf_path}")
-            print(f"PDF size: {len(pdf_bytes)} bytes")
-            print(f"Attachment name: {attachment_name}")
+            # Build attachments list with PDF
+            email_attachments = [
+                {
+                    "filename": pdf_attachment_name,
+                    "content": list(pdf_bytes),
+                }
+            ]
+
+            # Add uploaded files as attachments
+            if attachments:
+                for file in attachments:
+                    if file and hasattr(file, 'filename') and file.filename:
+                        try:
+                            file_content = await file.read()
+                            email_attachments.append({
+                                "filename": file.filename,
+                                "content": list(file_content),
+                            })
+                            print(f"📎 Attached: {file.filename} ({len(file_content)} bytes)")
+                        except Exception as file_err:
+                            print(f"⚠️ File read error: {file_err}")
+
+            print(f"📎 Sending email with {len(email_attachments)} attachment(s)")
 
             resend.Emails.send(
                 {
                     "from": "Portfolio <contacto@mmgonnar.com>",
                     "to": "mm.gonnar+portafolio@gmail.com",
-                    "subject": f"[Brief] {brief.projectName} — {brief.name}",
+                    "subject": f"[Brief] {brief.projectName or 'Project'} — {brief.name}",
                     "html": BriefService._build_email_html(brief),
-                    "attachments": [
-                        {
-                            "filename": attachment_name,
-                            "content": list(pdf_bytes),
-                        }
-                    ],
+                    "attachments": email_attachments,
                 }
             )
 
@@ -69,15 +87,14 @@ class BriefService:
 
     @staticmethod
     def _build_email_html(brief: BriefSubmission) -> str:
-        features_list = "".join(f"<li>{f}</li>" for f in brief.features)
-
+        features_list = "".join(f"<li>{f}</li>" for f in (brief.features or []))
+        
         return f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #1a1a1a;">📋 Nuevo Brief Recibido</h2>
-
             <table style="width: 100%; border-collapse: collapse;">
                 <tr style="background: #f9f9f9;">
-                    <td style="padding: 8px; font-weight: bold; color: #555; width: 40%;">Cliente</td>
+                    <td style="padding: 8px; font-weight: bold; color: #555;">Cliente</td>
                     <td style="padding: 8px;">{brief.name}</td>
                 </tr>
                 <tr>
@@ -101,14 +118,12 @@ class BriefService:
                     <td style="padding: 8px;">{brief.timeline}</td>
                 </tr>
             </table>
-
             <h3 style="color: #1a1a1a; margin-top: 20px;">Funcionalidades requeridas</h3>
             <ul style="color: #444;">
-                {features_list}
+                {features_list or '<li>No especificadas</li>'}
             </ul>
-
             <p style="color: #888; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
-                El brief completo está adjunto en PDF.
+                El brief completo está adjunto en PDF junto con los archivos subidos.
             </p>
         </div>
         """

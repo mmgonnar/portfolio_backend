@@ -7,6 +7,7 @@ from functools import lru_cache
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile # type: ignore[import-not-found]
 from supabase import create_client, Client # type: ignore[import-not-found]
+import json # type: ignore[import-not-found]
 from app.models.brief import BriefSubmission
 
 # Importaciones de tu app
@@ -42,10 +43,11 @@ async def handle_brief(
     visualStyle: str = Form(""),
     visualReferences: str = Form(""),
     brandColors: str = Form(""),
-    brandAssetsReady: bool = Form(False),
+    brandAssetsReady: str = Form("false"),
     budget: str = Form(...),
     timeline: str = Form(...),
-    flexibleBudget: bool = Form(False),
+    flexibleBudget: str = Form("false"),
+    currency: str = Form("USD"),
     additionalNotes: str = Form(""),
     locale: str = Form("en"),
     referenceLinks: str = Form(""),
@@ -53,16 +55,49 @@ async def handle_brief(
     supabase: Client = Depends(get_supabase),
 ):
     try:
-        # 1. Procesar datos
+        # 1. Procesar datos - Handle features as string or array
         try:
+            # Try parsing as JSON array first
             features_list = json.loads(features) if features else []
         except json.JSONDecodeError:
-            features_list = features.split(",") if features else []
+            # If it's a single string, wrap in array
+            if features and isinstance(features, str):
+                features_list = [features]
+            else:
+                features_list = features.split(",") if features else []
 
         # Build data_to_save with default values for BriefSubmission
         project_type_value = projectType if projectType else "website"
         budget_value = budget if budget else "not_defined"
         timeline_value = timeline if timeline else "flexible"
+        currency_value = currency if currency else "USD"
+
+        # Convert budget key to display value based on currency
+        budget_ranges = {
+            "USD": {
+                "r1": "$1K - $3K USD",
+                "r2": "$3K - $5K USD",
+                "r3": "$5K - $10K USD",
+                "r4": "$10K - $25K USD",
+                "r5": "$25K+ USD",
+            },
+            "MXN": {
+                "r1": "$10K - $15K MXN",
+                "r2": "$15K - $20K MXN",
+                "r3": "$20K - $25K MXN",
+                "r4": "$25K - $30K MXN",
+                "r5": "$30K+ MXN",
+            },
+        }
+        budget_display = budget_ranges.get(currency_value, {}).get(budget_value, budget_value) or budget_value
+
+        # Convert timeline key to display value
+        timeline_display = {
+            "asap": "ASAP",
+            "one_month": "1 Mes",
+            "two_three_months": "2-3 Meses",
+            "flexible": "Flexible",
+        }.get(timeline_value, timeline_value)
 
         data_to_save = {
             "name": name,
@@ -72,7 +107,7 @@ async def handle_brief(
             "projectName": projectName or company,
             "projectType": project_type_value,
             "projectDescription": projectDescription,
-            "hasExistingSite": hasExistingSite,
+            "hasExistingSite": hasExistingSite if isinstance(hasExistingSite, bool) else (hasExistingSite.lower() == "true" if isinstance(hasExistingSite, str) else False),
             "existingSiteUrl": existingSiteUrl,
             "features": features_list,
             "featuresDetail": featuresDetail,
@@ -80,11 +115,12 @@ async def handle_brief(
             "competitors": competitors,
             "visualStyle": visualStyle,
             "visualReferences": visualReferences,
-            "brandColors": brandColors or False,
-            "brandAssetsReady": brandAssetsReady,
-            "budget": budget_value,
-            "timeline": timeline_value,
-            "flexibleBudget": flexibleBudget,
+            "brandColors": brandColors if brandColors else None,
+            "brandAssetsReady": brandAssetsReady if isinstance(brandAssetsReady, bool) else (brandAssetsReady.lower() == "true" if isinstance(brandAssetsReady, str) else False),
+            "budget": budget_display,
+            "timeline": timeline_display,
+            "flexibleBudget": flexibleBudget if isinstance(flexibleBudget, bool) else (flexibleBudget.lower() == "true" if isinstance(flexibleBudget, str) else False),
+            "currency": currency_value,
             "additionalNotes": additionalNotes,
             "locale": locale,
             "referenceLinks": referenceLinks,
@@ -94,18 +130,26 @@ async def handle_brief(
         supabase_data = {
             "client_name": name,
             "client_email": email,
-            "client_phone": phone,
-            "company": company,
-            "project_name": projectName or company,
+            "client_phone": phone if phone else None,
+            "company": company if company else None,
+            "project_name": projectName or company or name,
             "project_type": project_type_value,
-            "budget": budget_value,
-            "timeline": timeline_value,
+            "project_description": projectDescription if projectDescription else None,
+            "has_existing_site": hasExistingSite if isinstance(hasExistingSite, bool) else (hasExistingSite.lower() == "true" if isinstance(hasExistingSite, str) else False),
+            "existing_site_url": existingSiteUrl if existingSiteUrl else None,
+            "features": features_list if features_list else None,
+            "target_audience": targetAudience if targetAudience else None,
+            "budget": budget_display,
+            "timeline": timeline_display,
+            "flexible_budget": flexibleBudget if isinstance(flexibleBudget, bool) else (flexibleBudget.lower() == "true" if isinstance(flexibleBudget, str) else False),
+            "currency": currency_value,
             "locale": locale,
+            "additional_notes": additionalNotes if additionalNotes else None,
             "full_data": data_to_save,
         }
         
-        # Filter out empty strings for optional fields
-        supabase_data = {k: v for k, v in supabase_data.items() if v}
+        # Filter out None values only (keep False booleans)
+        supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
         
         try:
             res = supabase.table("design_briefs").insert(supabase_data).execute()
@@ -130,12 +174,25 @@ async def handle_brief(
         brief_id = res.data[0]["id"]
         print(f"✅ Supabase OK — ID: {brief_id}")
 
+        # 2.5. Store file names for PDF (files are sent via email without reading here)
+        file_names = []
+        if attachments:
+            attachments_list = attachments if isinstance(attachments, list) else [attachments]
+            for f in attachments_list:
+                if f and hasattr(f, 'filename') and f.filename:
+                    file_names.append(f.filename)
+                    print(f"📎 File for email: {f.filename}")
+
+        # Add file names to data_to_save for PDF
+        data_to_save["files"] = file_names if file_names else None
+
         # 3. Generar PDF + Enviar correo
         # IMPORTANTE: Pasamos data_to_save porque 'brief' (Pydantic) ya no se usa aquí
+        # Also pass attachments for email
         brief_object = BriefSubmission(**data_to_save)
 
         print("⏳ Llamando BriefService.submit_brief...")
-        result = BriefService.submit_brief(brief_object)
+        result = await BriefService.submit_brief(brief_object, attachments)
         print(f"✅ BriefService OK — {result}")
 
         return {
