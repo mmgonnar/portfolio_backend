@@ -14,10 +14,15 @@ class BriefService:
 
     @staticmethod
     async def submit_brief(brief: BriefSubmission, attachments: List[UploadFile] = None) -> dict:
+        print(f"📧 submit_brief called - projectName: {brief.projectName}")
         data = brief.model_dump()
+        print(f"📧 Brief data: {list(data.keys())}")
+        
         pdf_path = generate_brief_pdf(data)
         logger.info(f"PDF generado: {pdf_path}")
+        print(f"📧 PDF generated: {pdf_path}")
 
+        print(f"📧 Sending email with attachments: {attachments}")
         await BriefService._send_email(brief, pdf_path, attachments)
 
         return {

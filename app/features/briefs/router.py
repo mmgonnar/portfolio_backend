@@ -55,6 +55,11 @@ async def handle_brief(
     attachments: List[UploadFile] = File(None),
     supabase: Client = Depends(get_supabase),
 ):
+    # DEBUG: Log incoming request
+    print(f"📥 Received brief request - name: {name}, email: {email}, projectType: {projectType}")
+    print(f"📥 features: {features}, budget: {budget}, currency: {currency}")
+    print(f"📥 attachments: {attachments}")
+    
     try:
         # 1. Procesar datos - Handle features as string or array
         try:
@@ -188,11 +193,16 @@ async def handle_brief(
 
         # Add file names to data_to_save for PDF
         data_to_save["files"] = file_names if file_names else None
+        
+        print(f"📝 data_to_save keys: {list(data_to_save.keys())}")
+        print(f"📝 files value: {data_to_save.get('files')}")
 
         # 3. Generar PDF + Enviar correo
         # IMPORTANTE: Pasamos data_to_save porque 'brief' (Pydantic) ya no se usa aquí
         # Also pass attachments for email
+        print("📝 Creating BriefSubmission...")
         brief_object = BriefSubmission(**data_to_save)
+        print(f"✅ BriefSubmission created: {brief_object.projectName}")
 
         print("⏳ Llamando BriefService.submit_brief...")
         result = await BriefService.submit_brief(brief_object, attachments)
