@@ -72,7 +72,7 @@ class BriefSubmission(BaseModel):
     additionalNotes: Optional[str] = None
 
     # Paso 6 — Archivos
-    files: List[str] = Field(default_factory=list)
+    files: Optional[List[str]] = []
 
     # Metadata
     locale: str = "es"
