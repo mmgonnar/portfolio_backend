@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import asyncio
 from typing import List, Optional
 from functools import lru_cache
 
@@ -150,6 +151,8 @@ async def handle_brief(
         
         # Filter out None values only (keep False booleans)
         supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
+        
+        print("📝 Inserting to Supabase...")
         
         try:
             res = supabase.table("design_briefs").insert(supabase_data).execute()
