@@ -1,4 +1,4 @@
-from fastapi import FastAPI  # type: ignore[import-not-found]
+from fastapi import FastAPI, Query  # type: ignore[import-not-found]
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import-not-found]
 from app.features.projects.service import ProjectService
 from app.models.schemas import ContactMessage
@@ -40,5 +40,5 @@ def send_message(msg: ContactMessage):
 
 
 @app.get("/projects")
-def get_projects():
-    return ProjectService.list_projects()
+def get_projects(lang: str = Query("es", description="Language: es or en")):
+    return ProjectService.list_projects(lang=lang)

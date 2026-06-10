@@ -5,9 +5,9 @@ class ProjectData:
     @staticmethod
     def get_all():
         response = (
-            supabase.table("portfolio_projects")
+            supabase.table("projects")
             .select("*")
-            .order("id", desc=True)
+            .order("created_at", desc=True)
             .execute()
         )
         return response.data
