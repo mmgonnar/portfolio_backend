@@ -53,3 +53,6 @@ __pycache__/
 # brief PDFs used to be written here and were tracked by accident
 temp_briefs/
 gunicorn.ctl
+
+# editor settings, local to each machine
+.vscode/
