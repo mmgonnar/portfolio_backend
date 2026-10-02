@@ -48,3 +48,8 @@ next-env.d.ts
 __pycache__/
 *.py[cod]
 *$py.class
+
+# generated at runtime, never commit
+# brief PDFs used to be written here and were tracked by accident
+temp_briefs/
+gunicorn.ctl
