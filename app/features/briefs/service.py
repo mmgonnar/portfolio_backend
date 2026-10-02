@@ -2,10 +2,11 @@ import os
 import resend  # type: ignore[import-not-found]
 import logging
 
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import UploadFile
 from app.models.brief import BriefSubmission
-from app.utils.pdf_generator import generate_brief_pdf
+from app.utils.pdf_generator import build_brief_filename, generate_brief_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -14,25 +15,27 @@ class BriefService:
 
     @staticmethod
     async def submit_brief(brief: BriefSubmission, attachments: List[UploadFile] = None) -> dict:
-        print(f"📧 submit_brief called - projectName: {brief.projectName}")
         data = brief.model_dump()
-        print(f"📧 Brief data: {list(data.keys())}")
-        
-        pdf_path = generate_brief_pdf(data)
-        logger.info(f"PDF generado: {pdf_path}")
-        print(f"📧 PDF generated: {pdf_path}")
 
-        print(f"📧 Sending email with attachments: {attachments}")
-        await BriefService._send_email(brief, pdf_path, attachments)
+        pdf_bytes = generate_brief_pdf(data)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        pdf_name = build_brief_filename(data, suffix=stamp)
+        logger.info("PDF generado en memoria: %d bytes", len(pdf_bytes))
+
+        await BriefService._send_email(brief, pdf_bytes, pdf_name, attachments)
 
         return {
             "status": "success",
             "message": "Brief recibido. Te contactaré pronto.",
-            "pdf_path": pdf_path,
         }
 
     @staticmethod
-    async def _send_email(brief: BriefSubmission, pdf_path: str, attachments: List[UploadFile] = None) -> None:
+    async def _send_email(
+        brief: BriefSubmission,
+        pdf_bytes: bytes,
+        pdf_name: str,
+        attachments: List[UploadFile] = None,
+    ) -> None:
         api_key = os.environ.get("RESEND_API_KEY")
 
         if not api_key:
@@ -42,16 +45,10 @@ class BriefService:
         resend.api_key = api_key
 
         try:
-            # Read PDF
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
-
-            pdf_attachment_name = f"Brief_{brief.projectName or brief.name or 'Project'}.pdf"
-
-            # Build attachments list with PDF
+            # El PDF llega ya generado en memoria, no hay archivo que leer ni borrar.
             email_attachments = [
                 {
-                    "filename": pdf_attachment_name,
+                    "filename": pdf_name,
                     "content": list(pdf_bytes),
                 }
             ]
