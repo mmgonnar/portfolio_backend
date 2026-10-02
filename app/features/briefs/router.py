@@ -1,6 +1,5 @@
 import logging
 import os
-import json
 import asyncio
 from typing import List, Optional
 from functools import lru_cache
@@ -8,7 +7,6 @@ from functools import lru_cache
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile # type: ignore[import-not-found]
 from supabase import create_client, Client # type: ignore[import-not-found]
-import json # type: ignore[import-not-found]
 from app.models.brief import BriefSubmission
 
 # Importaciones de tu app
@@ -37,7 +35,7 @@ async def handle_brief(
     projectDescription: str = Form(...),
     hasExistingSite: bool = Form(False),
     existingSiteUrl: str = Form(""),
-    features: str = Form(...),
+    features: List[str] = Form(...),
     featuresDetail: str = Form(""),
     targetAudience: str = Form(""),
     competitors: str = Form(""),
@@ -61,16 +59,11 @@ async def handle_brief(
     print(f"📥 attachments: {attachments}")
     
     try:
-        # 1. Procesar datos - Handle features as string or array
-        try:
-            # Try parsing as JSON array first
-            features_list = json.loads(features) if features else []
-        except json.JSONDecodeError:
-            # If it's a single string, wrap in array
-            if features and isinstance(features, str):
-                features_list = [features]
-            else:
-                features_list = features.split(",") if features else []
+        # 1. Procesar datos
+        # El formulario repite la clave "features", una vez por seleccion, y
+        # FastAPI las agrupa en una lista. Un cliente que mande JSON o una
+        # cadena separada por comas no es soportado: debe repetir la clave.
+        features_list = [f for f in features if f and f.strip()]
 
         # Build data_to_save with default values for BriefSubmission
         project_type_value = projectType if projectType else "website"
