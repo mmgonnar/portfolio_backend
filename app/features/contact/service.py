@@ -1,9 +1,12 @@
+import logging
 import resend  # type: ignore[import-not-found]
 import os
 import uuid
 from app.features.contact.data import ContactData
 from app.models.schemas import ContactMessage
 from fastapi import HTTPException  # type: ignore[import-not-found]
+
+logger = logging.getLogger(__name__)
 
 # Cargamos la API Key una sola vez
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -13,7 +16,7 @@ class ContactService:
     @staticmethod
     def submit_contact(message: ContactMessage):
         if message.phone_extension:
-            print("Bot detectado por honeypot")
+            logger.info("Contacto descartado por honeypot")
             return {"status": "success", "message": "Processed"}
 
         ticket_id = f"REF-{str(uuid.uuid4())[:8].upper()}"
@@ -40,15 +43,15 @@ class ContactService:
                         """,
                         }
                     )
-                except Exception as mail_error:
-                    print(f"Error enviando correo con Resend: {mail_error}")
+                except Exception:
+                    logger.exception("Error enviando el correo de contacto")
             else:
-                print("Advertencia: RESEND_API_KEY no configurada.")
+                logger.warning("RESEND_API_KEY no configurada, correo no enviado")
 
             return {"status": "success", "data": data, "ticket_id": ticket_id}
 
-        except Exception as e:
-            print(f"Error crítico en submit_contact: {e}")
+        except Exception:
+            logger.exception("Error critico en submit_contact")
             raise HTTPException(
                 status_code=500,
                 detail="No se pudo procesar el mensaje internamente. Por favor intente mas tarde",

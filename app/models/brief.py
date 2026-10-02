@@ -43,7 +43,7 @@ class BriefSubmission(BaseModel):
         if isinstance(v, str):
             try:
                 return json.loads(v)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 return []
         return v if isinstance(v, list) else []
 

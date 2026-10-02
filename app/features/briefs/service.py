@@ -63,11 +63,16 @@ class BriefService:
                                 "filename": file.filename,
                                 "content": list(file_content),
                             })
-                            print(f"📎 Attached: {file.filename} ({len(file_content)} bytes)")
-                        except Exception as file_err:
-                            print(f"⚠️ File read error: {file_err}")
+                            logger.info(
+                                "Adjunto agregado: %d bytes", len(file_content)
+                            )
+                        except Exception:
+                            # Sin el nombre del archivo, puede contener datos personales.
+                            logger.warning(
+                                "No se pudo leer un adjunto, se omite", exc_info=True
+                            )
 
-            print(f"📎 Sending email with {len(email_attachments)} attachment(s)")
+            logger.info("Enviando correo con %d adjuntos", len(email_attachments))
 
             resend.Emails.send(
                 {
@@ -79,12 +84,10 @@ class BriefService:
                 }
             )
 
-            logger.info(f"Correo enviado: {brief.projectName}")
-            print("✅ Correo enviado correctamente")
+            logger.info("Correo del brief enviado correctamente")
 
-        except Exception as e:
-            logger.error(f"Error enviando correo: {str(e)}")
-            print(f"ERROR RESEND: {str(e)}")
+        except Exception:
+            logger.exception("Error enviando el correo del brief")
             raise
 
     @staticmethod
