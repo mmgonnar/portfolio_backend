@@ -29,7 +29,24 @@ class BriefPDF(FPDF):
             self.image(logo_path, x=x_logo, y=y_logo, w=20)
 
 
-def generate_brief_pdf(data: dict):
+def build_brief_filename(data: dict, suffix: str = "") -> str:
+    """Nombre seguro para el PDF adjunto al correo.
+
+    Devuelve solo un nombre de archivo, nunca una ruta: el PDF ya no se
+    escribe a disco. El sufijo (fecha y hora) evita que dos briefs de la
+    misma empresa lleguen al correo con el mismo nombre.
+    """
+    identificador = (
+        data.get("company") or data.get("projectName") or data.get("name") or "Brief"
+    )
+    clean_name = re.sub(r"[^a-zA-Z0-9]", "_", str(identificador)).strip("_") or "Brief"
+
+    if suffix:
+        return f"brief_{clean_name}_{suffix}.pdf"
+    return f"brief_{clean_name}.pdf"
+
+
+def generate_brief_pdf(data: dict) -> bytes:
     # Configuración de página tamaño Carta (Letter)
     pdf = BriefPDF(format="letter")
     pdf.set_auto_page_break(auto=True, margin=30)
@@ -147,16 +164,9 @@ def generate_brief_pdf(data: dict):
         for label, key in fields:
             add_row(label, key)
 
-    # --- GESTIÓN DE ARCHIVO DINÁMICO ---
-    if not os.path.exists("temp_briefs"):
-        os.makedirs("temp_briefs")
-
-    # Nombre del archivo basado en Empresa -> Proyecto -> Cliente[cite: 3]
-    identificador = (
-        data.get("company") or data.get("projectName") or data.get("name") or "Brief"
-    )
-    clean_name = re.sub(r"[^a-zA-Z0-9]", "_", identificador)
-    filename = f"temp_briefs/brief_{clean_name}.pdf"
-
-    pdf.output(filename)
-    return filename
+    # --- SALIDA EN MEMORIA ---
+    # El PDF nunca toca el disco. Antes se escribia en temp_briefs/ dentro del
+    # repo, lo que dejaba datos de clientes en el arbol de trabajo y hacia que
+    # dos briefs con el mismo nombre de empresa se sobreescribieran. Al
+    # devolver bytes no hay archivos que limpiar ni colisiones posibles.
+    return bytes(pdf.output())

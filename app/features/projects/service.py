@@ -1,6 +1,10 @@
+import logging
+
 from app.features.projects.data import ProjectData
 from app.models.schemas import ProjectResponse
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectService:
@@ -26,6 +30,6 @@ class ProjectService:
                     )
                 )
             return projects
-        except Exception as e:
-            print(f"Error loading projects: {e}")
+        except Exception:
+            logger.exception("Error cargando proyectos")
             raise HTTPException(status_code=500, detail="Error getting projects")

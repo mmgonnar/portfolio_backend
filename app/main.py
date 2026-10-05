@@ -1,3 +1,6 @@
+import logging
+import os
+
 from fastapi import FastAPI, Query  # type: ignore[import-not-found]
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import-not-found]
 from app.features.projects.service import ProjectService
@@ -5,6 +8,13 @@ from app.models.schemas import ContactMessage
 
 from app.features.contact.service import ContactService
 from app.features.briefs.router import router as brief_router
+
+# Sin esta configuracion los logger.* de la app no emiten nada, porque el
+# logger raiz queda en WARNING por defecto. LOG_LEVEL es opcional.
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 app = FastAPI()
 
@@ -35,7 +45,8 @@ def home():
 
 @app.post("/contact")
 def send_message(msg: ContactMessage):
-    print(f"Mensaje de {msg.name}: {msg.message}")
+    # No se registra el nombre ni el mensaje: son datos personales y los logs
+    # de Render se conservan.
     return ContactService.submit_contact(msg)
 
 

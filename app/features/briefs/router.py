@@ -1,6 +1,5 @@
 import logging
 import os
-import json
 import asyncio
 from typing import List, Optional
 from functools import lru_cache
@@ -8,7 +7,6 @@ from functools import lru_cache
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile # type: ignore[import-not-found]
 from supabase import create_client, Client # type: ignore[import-not-found]
-import json # type: ignore[import-not-found]
 from app.models.brief import BriefSubmission
 
 # Importaciones de tu app
@@ -37,7 +35,7 @@ async def handle_brief(
     projectDescription: str = Form(...),
     hasExistingSite: bool = Form(False),
     existingSiteUrl: str = Form(""),
-    features: str = Form(...),
+    features: List[str] = Form(...),
     featuresDetail: str = Form(""),
     targetAudience: str = Form(""),
     competitors: str = Form(""),
@@ -55,22 +53,21 @@ async def handle_brief(
     attachments: List[UploadFile] = File(None),
     supabase: Client = Depends(get_supabase),
 ):
-    # DEBUG: Log incoming request
-    print(f"📥 Received brief request - name: {name}, email: {email}, projectType: {projectType}")
-    print(f"📥 features: {features}, budget: {budget}, currency: {currency}")
-    print(f"📥 attachments: {attachments}")
-    
+    # Se registra la forma de la peticion, nunca su contenido: nombre, email y
+    # descripcion son datos personales y los logs se conservan.
+    logger.info(
+        "Brief recibido: tipo=%s features=%d adjuntos=%d",
+        projectType,
+        len(features),
+        len(attachments) if attachments else 0,
+    )
+
     try:
-        # 1. Procesar datos - Handle features as string or array
-        try:
-            # Try parsing as JSON array first
-            features_list = json.loads(features) if features else []
-        except json.JSONDecodeError:
-            # If it's a single string, wrap in array
-            if features and isinstance(features, str):
-                features_list = [features]
-            else:
-                features_list = features.split(",") if features else []
+        # 1. Procesar datos
+        # El formulario repite la clave "features", una vez por seleccion, y
+        # FastAPI las agrupa en una lista. Un cliente que mande JSON o una
+        # cadena separada por comas no es soportado: debe repetir la clave.
+        features_list = [f for f in features if f and f.strip()]
 
         # Build data_to_save with default values for BriefSubmission
         project_type_value = projectType if projectType else "website"
@@ -157,13 +154,17 @@ async def handle_brief(
         # Filter out None values only (keep False booleans)
         supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
         
-        print("📝 Inserting to Supabase...")
-        
         try:
             res = supabase.table("design_briefs").insert(supabase_data).execute()
-        except Exception as supabase_err:
-            # Fallback: insert only required fields
-            print(f"⚠️ Supabase insert error: {supabase_err}")
+        except Exception:
+            # El fallback guarda solo cuatro campos, asi que el resto del brief
+            # se pierde en la fila. Se registra como WARNING para que esa
+            # perdida parcial sea visible y no silenciosa.
+            logger.warning(
+                "Insert completo de design_briefs fallo, usando fallback de 4 campos. "
+                "La fila quedara incompleta",
+                exc_info=True,
+            )
             try:
                 res = supabase.table("design_briefs").insert({
                     "client_name": name,
@@ -171,16 +172,15 @@ async def handle_brief(
                     "project_type": project_type_value,
                     "full_data": data_to_save,
                 }).execute()
-            except Exception as e2:
-                logger.error(f"Supabase fallback also failed: {e2}")
-                # Still fail but with clearer error
+            except Exception:
+                logger.exception("Insert de fallback de design_briefs tambien fallo")
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Database error: {str(e2)}",
+                    detail="No se pudo guardar el brief. Por favor intenta mas tarde",
                 )
 
         brief_id = res.data[0]["id"]
-        print(f"✅ Supabase OK — ID: {brief_id}")
+        logger.info("Brief guardado en Supabase: id=%s", brief_id)
 
         # 2.5. Store file names for PDF (files are sent via email without reading here)
         file_names = []
@@ -189,24 +189,16 @@ async def handle_brief(
             for f in attachments_list:
                 if f and hasattr(f, 'filename') and f.filename:
                     file_names.append(f.filename)
-                    print(f"📎 File for email: {f.filename}")
 
         # Add file names to data_to_save for PDF
         data_to_save["files"] = file_names if file_names else None
-        
-        print(f"📝 data_to_save keys: {list(data_to_save.keys())}")
-        print(f"📝 files value: {data_to_save.get('files')}")
 
         # 3. Generar PDF + Enviar correo
         # IMPORTANTE: Pasamos data_to_save porque 'brief' (Pydantic) ya no se usa aquí
         # Also pass attachments for email
-        print("📝 Creating BriefSubmission...")
         brief_object = BriefSubmission(**data_to_save)
-        print(f"✅ BriefSubmission created: {brief_object.projectName}")
-
-        print("⏳ Llamando BriefService.submit_brief...")
         result = await BriefService.submit_brief(brief_object, attachments)
-        print(f"✅ BriefService OK — {result}")
+        logger.info("Brief procesado: id=%s", brief_id)
 
         return {
             "status": "success",
@@ -214,10 +206,15 @@ async def handle_brief(
             "id": brief_id,
         }
 
-    except Exception as e:
-        logger.error(f"Error guardando brief: {str(e)}")
-        print(f"❌ Error: {str(e)}")
+    except HTTPException:
+        # Ya tiene un mensaje generico propio, no se vuelve a envolver.
+        raise
+    except Exception:
+        # El detalle completo va al log del servidor, al cliente solo un
+        # mensaje generico: el texto de la excepcion puede revelar nombres de
+        # tablas o columnas de Supabase.
+        logger.exception("Error guardando brief")
         raise HTTPException(
             status_code=500,
-            detail=f"Error interno del servidor: {str(e)}",
+            detail="Error interno del servidor. Por favor intenta mas tarde",
         )
