@@ -7,6 +7,7 @@ from functools import lru_cache
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile # type: ignore[import-not-found]
 from supabase import create_client, Client # type: ignore[import-not-found]
+from app.features.briefs.labels import TIMELINE_LABELS, label
 from app.models.brief import BriefSubmission, ScopeLevel
 
 # Importaciones de tu app
@@ -120,13 +121,10 @@ async def handle_brief(
         }
         budget_display = budget_ranges.get(currency_value, {}).get(budget_value, budget_value) or budget_value
 
-        # Convert timeline key to display value
-        timeline_display = {
-            "asap": "ASAP",
-            "one_month": "1 Mes",
-            "two_three_months": "2-3 Meses",
-            "flexible": "Flexible",
-        }.get(timeline_value, timeline_value)
+        # Las etiquetas viven en labels.py, que es lo que tambien usan el PDF
+        # y el correo. Este mapa tenia cuatro entradas y le faltaba
+        # one_3_months, que el modelo si acepta.
+        timeline_display = label(timeline_value, TIMELINE_LABELS)
 
         data_to_save = {
             "name": name,
