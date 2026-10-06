@@ -7,7 +7,7 @@ from functools import lru_cache
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile # type: ignore[import-not-found]
 from supabase import create_client, Client # type: ignore[import-not-found]
-from app.models.brief import BriefSubmission
+from app.models.brief import BriefSubmission, ScopeLevel
 
 # Importaciones de tu app
 from app.features.briefs.service import BriefService
@@ -43,6 +43,11 @@ async def handle_brief(
     visualReferences: str = Form(""),
     brandColors: str = Form(""),
     brandAssetsReady: str = Form("false"),
+    designStatus: str = Form(""),
+    designLink: str = Form(""),
+    wantsDesignQuote: str = Form("false"),
+    scopeLevel: str = Form(""),
+    scopeWeight: str = Form(""),
     budget: str = Form(...),
     timeline: str = Form(...),
     flexibleBudget: str = Form("false"),
@@ -56,10 +61,12 @@ async def handle_brief(
     # Se registra la forma de la peticion, nunca su contenido: nombre, email y
     # descripcion son datos personales y los logs se conservan.
     logger.info(
-        "Brief recibido: tipo=%s features=%d adjuntos=%d",
+        "Brief recibido: tipo=%s features=%d adjuntos=%d alcance=%s/%s",
         projectType,
         len(features),
         len(attachments) if attachments else 0,
+        scopeLevel or "-",
+        scopeWeight or "-",
     )
 
     try:
@@ -69,6 +76,26 @@ async def handle_brief(
         # cadena separada por comas no es soportado: debe repetir la clave.
         features_list = [f for f in features if f and f.strip()]
 
+        # El alcance lo calcula el frontend (scope.ts es la unica copia de los
+        # pesos), aqui solo se valida la forma: nivel conocido y peso entero no
+        # negativo. Un valor que no cuadra se guarda vacio en vez de romper el
+        # envio, porque el brief del cliente vale mas que la estimacion.
+        scope_level_value = scopeLevel if scopeLevel in ScopeLevel.__members__ else None
+        if scopeLevel and scope_level_value is None:
+            logger.warning("scopeLevel desconocido, se ignora: %s", scopeLevel)
+
+        scope_weight_value = None
+        if scopeWeight:
+            try:
+                parsed_weight = int(scopeWeight)
+                scope_weight_value = parsed_weight if parsed_weight >= 0 else None
+            except ValueError:
+                scope_weight_value = None
+            if scope_weight_value is None:
+                logger.warning("scopeWeight invalido, se ignora: %s", scopeWeight)
+
+        wants_design_quote_value = str(wantsDesignQuote).lower() == "true"
+
         # Build data_to_save with default values for BriefSubmission
         project_type_value = projectType if projectType else "website"
         budget_value = budget if budget else "not_defined"
@@ -76,20 +103,19 @@ async def handle_brief(
         currency_value = currency if currency else "USD"
 
         # Convert budget key to display value based on currency
+        # Mismas bandas que features/brief/utils/scope.ts en el frontend.
         budget_ranges = {
             "USD": {
-                "r1": "$1K - $3K USD",
-                "r2": "$3K - $5K USD",
-                "r3": "$5K - $10K USD",
-                "r4": "$10K - $25K USD",
-                "r5": "$25K+ USD",
+                "r1": "Menos de $1,200 USD",
+                "r2": "$1,200 - $3,000 USD",
+                "r3": "$3,000 - $6,000 USD",
+                "r4": "$6,000+ USD",
             },
             "MXN": {
-                "r1": "$10K - $15K MXN",
-                "r2": "$15K - $20K MXN",
-                "r3": "$20K - $25K MXN",
-                "r4": "$25K - $30K MXN",
-                "r5": "$30K+ MXN",
+                "r1": "Menos de $15,000 MXN",
+                "r2": "$15,000 - $40,000 MXN",
+                "r3": "$40,000 - $80,000 MXN",
+                "r4": "$80,000+ MXN",
             },
         }
         budget_display = budget_ranges.get(currency_value, {}).get(budget_value, budget_value) or budget_value
@@ -120,6 +146,11 @@ async def handle_brief(
             "visualReferences": visualReferences,
             "brandColors": brandColors if brandColors else None,
             "brandAssetsReady": brandAssetsReady if isinstance(brandAssetsReady, bool) else (brandAssetsReady.lower() == "true" if isinstance(brandAssetsReady, str) else False),
+            "designStatus": designStatus,
+            "designLink": designLink,
+            "wantsDesignQuote": wants_design_quote_value,
+            "scopeLevel": scope_level_value,
+            "scopeWeight": scope_weight_value,
             "budget": budget_display,
             "timeline": timeline_display,
             "flexibleBudget": flexibleBudget if isinstance(flexibleBudget, bool) else (flexibleBudget.lower() == "true" if isinstance(flexibleBudget, str) else False),
@@ -148,6 +179,11 @@ async def handle_brief(
             "currency": currency_value,
             "locale": locale,
             "additional_notes": additionalNotes if additionalNotes else None,
+            "design_status": designStatus if designStatus else None,
+            "design_link": designLink if designLink else None,
+            "wants_design_quote": wants_design_quote_value,
+            "scope_level": scope_level_value,
+            "scope_weight": scope_weight_value,
             "full_data": data_to_save,
         }
         
