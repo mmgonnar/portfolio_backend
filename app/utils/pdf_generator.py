@@ -1,4 +1,13 @@
 from fpdf import FPDF  # type: ignore[import-not-found]
+from app.features.briefs.labels import (
+    DESIGN_STATUS_LABELS,
+    PROJECT_TYPE_LABELS,
+    TIMELINE_LABELS,
+    VISUAL_STYLE_LABELS,
+    feature_labels,
+    label as translate,
+    scope_summary,
+)
 import os
 import re
 
@@ -47,6 +56,23 @@ def build_brief_filename(data: dict, suffix: str = "") -> str:
 
 
 def generate_brief_pdf(data: dict) -> bytes:
+    # Las claves se traducen antes de imprimir, y lo que no se reconoce se
+    # imprime igual, para que las filas viejas sigan siendo legibles.
+    data = {
+        **data,
+        "projectType": translate(data.get("projectType"), PROJECT_TYPE_LABELS),
+        "features": feature_labels(data.get("features")),
+        "designStatus": translate(data.get("designStatus"), DESIGN_STATUS_LABELS),
+        "visualStyle": translate(data.get("visualStyle"), VISUAL_STYLE_LABELS),
+        "timeline": translate(data.get("timeline"), TIMELINE_LABELS),
+        "scope": scope_summary(data.get("scopeLevel"), data.get("scopeWeight")),
+        "wantsDesignQuote": (
+            "Sí, cotización de diseño UI/UX solicitada (servicio adicional)"
+            if data.get("wantsDesignQuote")
+            else ""
+        ),
+    }
+
     # Configuración de página tamaño Carta (Letter)
     pdf = BriefPDF(format="letter")
     pdf.set_auto_page_break(auto=True, margin=30)
@@ -120,19 +146,28 @@ def generate_brief_pdf(data: dict) -> bytes:
             ],
         ),
         (
-            "ESTILO Y AUDIENCIA",
+            "DISEÑO Y MARCA",
+            [
+                ("¿Qué tiene para el diseño?", "designStatus"),
+                ("Enlace del diseño", "designLink"),
+                ("Cotización de diseño", "wantsDesignQuote"),
+                ("Colores de marca", "brandColors"),
+                ("¿Assets listos?", "brandAssetsReady"),
+                ("Estilo Visual", "visualStyle"),
+                ("Referencias Visuales", "visualReferences"),
+            ],
+        ),
+        (
+            "AUDIENCIA",
             [
                 ("Público objetivo", "targetAudience"),
                 ("Competencia", "competitors"),
-                ("Estilo Visual", "visualStyle"),
-                ("Referencias Visuales", "visualReferences"),
-                ("Colores de marca", "brandColors"),
-                ("¿Assets listos?", "brandAssetsReady"),
             ],
         ),
         (
             "PRESUPUESTO Y TIEMPOS",
             [
+                ("Alcance estimado", "scope"),
                 ("Presupuesto", "budget"),
                 ("Tiempo para el proyecto", "timeline"),
                 ("¿Presupuesto flexible?", "flexibleBudget"),

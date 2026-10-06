@@ -7,9 +7,9 @@ from enum import Enum
 # ─── Enums ────────────────────────────────────────────────────────────────────
 class ProjectType(str, Enum):
     website = "website"
-    wordpress = "wordpress"
     landing = "landing"
-    webapp = "webapp"
+    web_app = "web_app"
+    dashboard = "dashboard"
     redesign = "redesign"
     other = "other"
 
@@ -19,8 +19,19 @@ class BudgetRange(str, Enum):
     r2 = "r2"
     r3 = "r3"
     r4 = "r4"
-    r5 = "r5"
     not_defined = "not_defined"
+
+
+class DesignStatus(str, Enum):
+    ready = "ready"
+    brand_kit = "brand_kit"
+    none = "none"
+
+
+class ScopeLevel(str, Enum):
+    basic = "basic"
+    medium = "medium"
+    advanced = "advanced"
 
 
 class Timeline(str, Enum):
@@ -47,7 +58,10 @@ class BriefSubmission(BaseModel):
                 return []
         return v if isinstance(v, list) else []
 
-    @field_validator('hasExistingSite', 'brandAssetsReady', 'flexibleBudget', mode='before')
+    @field_validator(
+        'hasExistingSite', 'brandAssetsReady', 'flexibleBudget', 'wantsDesignQuote',
+        mode='before',
+    )
     @classmethod
     def parse_bool_fields(cls, v):
         if v is None or v == '':
@@ -82,6 +96,15 @@ class BriefSubmission(BaseModel):
     visualReferences: Optional[str] = None
     brandColors: Optional[str] = None
     brandAssetsReady: bool = False
+
+    # Diseño: que trae el cliente y si pidio cotizacion de UI/UX
+    designStatus: Optional[str] = None
+    designLink: Optional[str] = None
+    wantsDesignQuote: bool = False
+
+    # Alcance calculado en el frontend desde scope.ts
+    scopeLevel: Optional[str] = None
+    scopeWeight: Optional[int] = None
 
     # Paso 5 — Presupuesto
     budget: Optional[str] = None

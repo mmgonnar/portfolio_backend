@@ -6,6 +6,14 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import UploadFile
 from app.models.brief import BriefSubmission
+from app.features.briefs.labels import (
+    DESIGN_STATUS_LABELS,
+    PROJECT_TYPE_LABELS,
+    TIMELINE_LABELS,
+    feature_labels,
+    label,
+    scope_summary,
+)
 from app.utils.pdf_generator import build_brief_filename, generate_brief_pdf
 
 logger = logging.getLogger(__name__)
@@ -92,7 +100,26 @@ class BriefService:
 
     @staticmethod
     def _build_email_html(brief: BriefSubmission) -> str:
-        features_list = "".join(f"<li>{f}</li>" for f in (brief.features or []))
+        # Las claves se traducen aqui igual que en el PDF; lo desconocido pasa
+        # tal cual para que un brief viejo siga siendo legible.
+        features_list = "".join(f"<li>{f}</li>" for f in feature_labels(brief.features))
+        project_type = label(brief.projectType, PROJECT_TYPE_LABELS)
+        design_status = label(brief.designStatus, DESIGN_STATUS_LABELS)
+        scope = scope_summary(brief.scopeLevel, brief.scopeWeight)
+        # El router ya manda el timeline en texto; si llegara la clave cruda,
+        # label la traduce igual y si no la conoce la deja pasar.
+        timeline = label(brief.timeline, TIMELINE_LABELS)
+
+        design_quote_row = (
+            '''
+                <tr>
+                    <td style="padding: 8px; font-weight: bold; color: #555;">Cotización</td>
+                    <td style="padding: 8px;">Diseño UI/UX solicitado (servicio adicional)</td>
+                </tr>
+            '''
+            if brief.wantsDesignQuote
+            else ""
+        )
         
         return f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -112,7 +139,15 @@ class BriefService:
                 </tr>
                 <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Tipo</td>
-                    <td style="padding: 8px;">{brief.projectType}</td>
+                    <td style="padding: 8px;">{project_type}</td>
+                </tr>
+                <tr style="background: #f9f9f9;">
+                    <td style="padding: 8px; font-weight: bold; color: #555;">Diseño</td>
+                    <td style="padding: 8px;">{design_status or 'No especificado'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; font-weight: bold; color: #555;">Alcance</td>
+                    <td style="padding: 8px;">{scope or 'No calculado'}</td>
                 </tr>
                 <tr style="background: #f9f9f9;">
                     <td style="padding: 8px; font-weight: bold; color: #555;">Presupuesto</td>
@@ -120,8 +155,9 @@ class BriefService:
                 </tr>
                 <tr>
                     <td style="padding: 8px; font-weight: bold; color: #555;">Timeline</td>
-                    <td style="padding: 8px;">{brief.timeline}</td>
+                    <td style="padding: 8px;">{timeline}</td>
                 </tr>
+                {design_quote_row}
             </table>
             <h3 style="color: #1a1a1a; margin-top: 20px;">Funcionalidades requeridas</h3>
             <ul style="color: #444;">
