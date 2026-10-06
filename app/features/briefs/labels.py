@@ -11,10 +11,10 @@ original: un brief de hace meses se sigue leyendo igual.
 
 PROJECT_TYPE_LABELS = {
     "website": "Sitio web",
-    "web_app": "Aplicacion web",
+    "web_app": "Aplicación web",
     "landing": "Landing page",
-    "redesign": "Rediseno",
-    "dashboard": "Dashboard / panel de administracion",
+    "redesign": "Rediseño",
+    "dashboard": "Dashboard / panel de administración",
     "other": "Otro",
     # Tipo retirado, se conserva para las filas que ya lo tienen.
     "wordpress": "Sitio en Wordpress",
@@ -22,28 +22,28 @@ PROJECT_TYPE_LABELS = {
 
 FEATURE_LABELS = {
     "auth": "Cuentas de usuario",
-    "admin_dashboard": "Panel de administracion",
+    "admin_dashboard": "Panel de administración",
     "forms_emails": "Formularios y correo",
     "database": "Base de datos",
     "integrations": "Integraciones",
-    "seo": "Configuracion SEO",
+    "seo": "Configuración SEO",
     "multi_language": "Varios idiomas",
     "deployment": "Despliegue y dominio",
     # Funcionalidades retiradas, siguen apareciendo en briefs anteriores.
-    "cms": "Gestion de contenidos",
+    "cms": "Gestión de contenidos",
     "payments": "Pasarela de pagos",
     "analytics": "Analytics y seguimiento",
-    "mobile": "Diseno mobile-first",
+    "mobile": "Diseño mobile-first",
 }
 
 DESIGN_STATUS_LABELS = {
-    "ready": "Ya tiene el diseno listo",
+    "ready": "Ya tiene el diseño listo",
     "brand_kit": "Tiene kit de marca",
-    "none": "No tiene nada todavia",
+    "none": "No tiene nada todavía",
 }
 
 SCOPE_LEVEL_LABELS = {
-    "basic": "Basico",
+    "basic": "Básico",
     "medium": "Medio",
     "advanced": "Avanzado",
 }

@@ -67,7 +67,7 @@ def generate_brief_pdf(data: dict) -> bytes:
         "timeline": translate(data.get("timeline"), TIMELINE_LABELS),
         "scope": scope_summary(data.get("scopeLevel"), data.get("scopeWeight")),
         "wantsDesignQuote": (
-            "Si, cotizacion de diseno UI/UX solicitada (servicio adicional)"
+            "Sí, cotización de diseño UI/UX solicitada (servicio adicional)"
             if data.get("wantsDesignQuote")
             else ""
         ),
