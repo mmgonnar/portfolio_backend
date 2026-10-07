@@ -30,14 +30,15 @@ origins = [
 # Los despliegues de vista previa de Vercel tienen un host distinto en cada
 # commit, asi que no se pueden listar. El patron cubre las dos formas que usa
 # Vercel para este proyecto:
-#   portfolio-<hash>-<scope>.vercel.app
-#   portfolio-git-<rama>-<scope>.vercel.app
+#   portfolio-<hash>-mmgonnars-projects.vercel.app
+#   portfolio-git-<rama>-mmgonnars-projects.vercel.app
 #
-# Deliberadamente NO es todo vercel.app: exige el prefijo "portfolio-", que es
-# el nombre del proyecto, y ancla ambos extremos. El segmento intermedio no
-# admite puntos, de modo que algo como portfolio-x.vercel.app.otrodominio.com
-# no entra. Produccion sigue en la lista explicita de arriba.
-VERCEL_PREVIEW_ORIGIN = r"^https://portfolio-[a-z0-9-]+\.vercel\.app$"
+# Exige el nombre del proyecto como prefijo Y el scope del equipo como sufijo,
+# asi que un proyecto llamado portfolio-* en otra cuenta de Vercel no entra.
+# Ambos extremos estan anclados y el segmento intermedio no admite puntos, de
+# modo que portfolio-x.vercel.app.otrodominio.com tampoco pasa. Produccion
+# sigue en la lista explicita de arriba.
+VERCEL_PREVIEW_ORIGIN = r"^https://portfolio-[a-z0-9-]+-mmgonnars-projects\.vercel\.app$"
 
 app.add_middleware(
     CORSMiddleware,
