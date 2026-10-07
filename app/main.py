@@ -9,6 +9,11 @@ from app.models.schemas import ContactMessage
 from app.features.contact.service import ContactService
 from app.features.briefs.router import router as brief_router
 
+from fastapi import Response
+from app.db.supabase_client import supabase
+
+logger = logging.getLogger(__name__)
+
 # Sin esta configuracion los logger.* de la app no emiten nada, porque el
 # logger raiz queda en WARNING por defecto. LOG_LEVEL es opcional.
 logging.basicConfig(
@@ -41,6 +46,17 @@ app.include_router(brief_router, prefix="/api/v1", tags=["Brief"])
 @app.get("/")
 def home():
     return {"message": "API ready"}
+
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health(response: Response):
+    try:
+        supabase.table("projects").select("id").limit(1).execute()
+        return {"status": "ok"}
+    except Exception:
+        logger.exception("Health check: Supabase no responde")
+        response.status_code = 503
+        return {"status": "degraded"}
 
 
 @app.post("/contact")
