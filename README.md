@@ -66,8 +66,8 @@ supabase_migration_brief_restructure.sql
                                Daily cron that pings Supabase so the free project is not paused
 Procfile                       Render start command
 BACKEND_FIELDS.md              Field by field contract for the brief form
-PROJECT_SUMMARY.md             Older working notes, partly out of date (see Known issues)
-test_file_upload.py            Ad hoc manual script, not a test suite (see Known issues)
+PROJECT_SUMMARY.md             Older working notes, superseded by this file
+test_file_upload.py            Ad hoc manual script against a local server, not a test suite
 ```
 
 The layout convention is one folder per feature under `app/features/`, split into `router` (HTTP),
@@ -145,7 +145,7 @@ Response `200`, a JSON array of:
 missing one of them makes the whole request fail.
 
 Response `500` with `{"detail": "Error getting projects"}` on any failure, including an unknown
-`lang`. See Known issues.
+`lang`, which makes the column lookup fail.
 
 ### `POST /contact`
 
@@ -455,48 +455,3 @@ takes tens of seconds. The PDF is generated in memory and the uploaded files are
 Resend, so no writable disk is needed and nothing has to survive a restart.
 
 There is no `render.yaml`; the service is configured in the dashboard.
-
----
-
-## Known issues
-
-Found while reading the code. Nothing here has been changed.
-
-1. `GET /projects` does not validate `lang`. Anything other than `es` or `en` makes the column
-   lookup `item[f"title_{lang}"]` raise `KeyError`, which is caught and returned as a generic 500
-   "Error getting projects". A 422 would be the right answer. The `Query` description says
-   "Language: es or en" but nothing enforces it.
-2. `ProjectResponse` types `id` and `created_at` as `str`. Pydantic v2 does not coerce an integer
-   or a timestamp into a string, so if those columns are not text in Supabase, every `/projects`
-   request fails validation and surfaces as the same generic 500. Worth confirming against the
-   real column types.
-3. `test_file_upload.py` cannot work as written. It imports `requests`, which is not in
-   `requirements.txt`, and it sends `features` as a JSON string, which the router explicitly does
-   not accept (the key must be repeated). It is also not a test, just a manual script, despite the
-   `test_` prefix that would make pytest try to collect it.
-4. There are two ways to reach Supabase. `app/db/supabase_client.py` builds a module level client
-   at import time and raises `ValueError` if credentials are missing; `app/features/briefs/router.py`
-   builds its own through an `lru_cache`d `get_supabase()` dependency that raises `RuntimeError`.
-   Same job, two implementations, two different failure modes.
-5. `app/models/brief.py` defines `ProjectType`, `BudgetRange`, `DesignStatus`, and `Timeline`
-   enums, but `BriefSubmission` types those fields as plain `Optional[str]`, so the enums never
-   constrain anything. Only `ScopeLevel` is actually used, and only in the router. The rest is
-   dead code that reads like validation.
-6. `email` on `POST /api/v1/send-brief` is a bare `str`, while `/contact` uses `EmailStr`. A brief
-   can be submitted with an unparseable email address, which is the one field needed to reply.
-7. A brief that saves but fails to email returns 500. The client sees a failure and will likely
-   resubmit, producing a duplicate row, even though the first one was stored. `/contact` handles
-   the same situation the other way around and swallows the email error.
-8. `PROJECT_SUMMARY.md` is out of date and contradicts the code: it lists a budget key `r5` and
-   different USD and MXN bands than `router.py`, omits the `one_3_months` timeline, documents a
-   `files` column on `design_briefs` that the code never writes (file names only go into
-   `full_data`), and still lists the frontend localhost URL as an open issue. It reads as working
-   notes, not documentation.
-9. `app/features/contact/service.py` sets `resend.api_key` once at import time, while
-   `app/features/briefs/service.py` sets it per send. If `RESEND_API_KEY` is absent at import and
-   present later, contact email stays off for the life of the process.
-10. The brief fallback insert keeps only four columns. That is deliberate and logged as a warning,
-    but it means a schema drift on `design_briefs` degrades silently into near empty rows that
-    still return `200 success` to the client.
-11. `temp_briefs/` still exists in the working tree even though PDFs are now generated in memory
-    and the directory is gitignored. It is leftover and can be deleted.
