@@ -7,6 +7,7 @@ __pycache__/
 
 # secrets
 .env
+*.pem
 
 # generated at runtime, never commit
 # brief PDFs used to be written here and were tracked by accident
@@ -18,5 +19,3 @@ gunicorn.ctl
 
 # macOS
 .DS_Store
-*.pem
-*.pem
