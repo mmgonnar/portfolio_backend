@@ -65,3 +65,21 @@ def test_brief_saved_but_email_failed_still_returns_success(
     # ...asi que la respuesta correcta es exito con el id, no un 500.
     assert response.status_code == 200
     assert response.json()["id"] == FAKE_INSERT_ID
+
+
+def test_brief_insert_failure_returns_500_and_sends_no_email(
+    client, fake_supabase, sent_emails
+):
+    """Sin el fallback de 4 campos, un insert fallido es ruidoso: 500 generico,
+    nada guardado y ningun correo enviado."""
+    fake_supabase.fail = True
+
+    response = client.post("/api/v1/send-brief", data=valid_brief_form())
+
+    assert response.status_code == 500
+    assert (
+        response.json()["detail"]
+        == "No se pudo guardar el brief. Por favor intenta mas tarde"
+    )
+    assert fake_supabase.inserts == {}
+    assert sent_emails == []
