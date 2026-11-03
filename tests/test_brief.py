@@ -42,11 +42,6 @@ def test_brief_single_feature_still_binds_as_list(client, fake_supabase):
     assert fake_supabase.inserts["design_briefs"][0]["features"] == ["ecommerce"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Issue 0.9 / tarea 7.3: email del brief es str plano (router.py:30) "
-    "mientras /contact usa EmailStr; un correo malformado debe ser 422",
-)
 def test_brief_rejects_malformed_email(client, fake_supabase):
     response = client.post(
         "/api/v1/send-brief", data=valid_brief_form(email="no-es-un-correo")

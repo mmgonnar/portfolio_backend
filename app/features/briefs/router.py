@@ -4,6 +4,7 @@ from typing import List, Optional
 
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile
+from pydantic import EmailStr
 from supabase import Client
 from app.features.briefs.labels import TIMELINE_LABELS, label
 from app.models.brief import BriefSubmission, ScopeLevel
@@ -19,7 +20,9 @@ router = APIRouter()
 async def handle_brief(
     background_tasks: BackgroundTasks,
     name: str = Form(...),
-    email: str = Form(...),
+    # EmailStr, igual que /contact: un correo malformado es 422 antes de tocar
+    # la base. El formulario ya valida con zod, esto cubre el POST directo.
+    email: EmailStr = Form(...),
     phone: str = Form(""),
     company: str = Form(""),
     projectName: str = Form(""),
