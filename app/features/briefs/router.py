@@ -18,37 +18,41 @@ router = APIRouter()
 @router.post("/send-brief")
 async def handle_brief(
     background_tasks: BackgroundTasks,
-    name: str = Form(...),
+    # Topes de longitud en la frontera HTTP, no en BriefSubmission: el modelo
+    # se construye DESPUES del insert, asi que un tope ahi llegaria tarde. Un
+    # campo pasado de largo es 422 antes de guardar o enviar nada. Bandas:
+    # name 100 (igual que el zod del frontend), texto corto 200, texto largo
+    # 5000, URLs 2048 (200 cortaria enlaces reales de Figma o de un sitio).
+    name: str = Form(..., max_length=100),
     # EmailStr, igual que /contact: un correo malformado es 422 antes de tocar
     # la base. El formulario ya valida con zod, esto cubre el POST directo.
     email: EmailStr = Form(...),
-    phone: str = Form(""),
-    company: str = Form(""),
-    projectName: str = Form(""),
-    projectType: str = Form(...),
-    projectDescription: str = Form(...),
+    phone: str = Form("", max_length=200),
+    company: str = Form("", max_length=200),
+    projectName: str = Form("", max_length=200),
+    projectType: str = Form(..., max_length=200),
+    projectDescription: str = Form(..., max_length=5000),
     hasExistingSite: bool = Form(False),
-    existingSiteUrl: str = Form(""),
+    existingSiteUrl: str = Form("", max_length=2048),
     features: List[str] = Form(...),
-    featuresDetail: str = Form(""),
-    targetAudience: str = Form(""),
-    competitors: str = Form(""),
-    visualStyle: str = Form(""),
-    visualReferences: str = Form(""),
-    brandColors: str = Form(""),
-    brandAssetsReady: str = Form("false"),
-    designStatus: str = Form(""),
-    designLink: str = Form(""),
-    wantsDesignQuote: str = Form("false"),
-    scopeLevel: str = Form(""),
-    scopeWeight: str = Form(""),
-    budget: str = Form(...),
-    timeline: str = Form(...),
-    flexibleBudget: str = Form("false"),
-    currency: str = Form("USD"),
-    additionalNotes: str = Form(""),
-    locale: str = Form("en"),
-    referenceLinks: str = Form(""),
+    featuresDetail: str = Form("", max_length=5000),
+    targetAudience: str = Form("", max_length=5000),
+    competitors: str = Form("", max_length=5000),
+    visualStyle: str = Form("", max_length=200),
+    visualReferences: str = Form("", max_length=5000),
+    brandColors: str = Form("", max_length=200),
+    brandAssetsReady: str = Form("false", max_length=200),
+    designStatus: str = Form("", max_length=200),
+    designLink: str = Form("", max_length=2048),
+    wantsDesignQuote: str = Form("false", max_length=200),
+    scopeLevel: str = Form("", max_length=200),
+    scopeWeight: str = Form("", max_length=200),
+    budget: str = Form(..., max_length=200),
+    timeline: str = Form(..., max_length=200),
+    flexibleBudget: str = Form("false", max_length=200),
+    currency: str = Form("USD", max_length=200),
+    additionalNotes: str = Form("", max_length=5000),
+    locale: str = Form("en", max_length=200),
     attachments: List[UploadFile] = File(None),
     supabase: Client = Depends(get_supabase),
 ):
@@ -148,7 +152,6 @@ async def handle_brief(
             "currency": currency_value,
             "additionalNotes": additionalNotes,
             "locale": locale,
-            "referenceLinks": referenceLinks,
         }
 
         # 2. Guardar en Supabase

@@ -1,8 +1,8 @@
 """POST /api/v1/send-brief: camino feliz multi-feature y bugs conocidos de 0.9."""
 
-import pytest
 import resend
 
+from app.models.brief import BriefSubmission
 from tests.conftest import FAKE_INSERT_ID, valid_brief_form
 
 FOUR_FEATURES = ["ecommerce", "blog", "seo", "cms"]
@@ -83,3 +83,21 @@ def test_brief_insert_failure_returns_500_and_sends_no_email(
     )
     assert fake_supabase.inserts == {}
     assert sent_emails == []
+
+
+def test_brief_overlength_field_is_rejected(client, fake_supabase, sent_emails):
+    # name tiene tope 100 (el mismo del zod del frontend); pasarse es 422 en la
+    # frontera HTTP, antes de guardar o enviar nada.
+    response = client.post(
+        "/api/v1/send-brief", data=valid_brief_form(name="x" * 101)
+    )
+    assert response.status_code == 422
+    assert fake_supabase.inserts == {}
+    assert sent_emails == []
+
+
+def test_brief_submission_keeps_currency():
+    # currency es campo declarado: sin extra="allow" tiene que seguir llegando
+    # al model_dump que alimenta el PDF y el correo.
+    assert BriefSubmission(currency="MXN").model_dump()["currency"] == "MXN"
+    assert BriefSubmission().model_dump()["currency"] == "USD"
