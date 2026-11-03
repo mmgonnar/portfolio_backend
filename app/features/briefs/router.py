@@ -182,30 +182,17 @@ async def handle_brief(
         # Filter out None values only (keep False booleans)
         supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
         
+        # Sin fallback: si el insert completo falla, el error es ruidoso. El
+        # fallback de 4 campos guardaba filas casi vacias con un 200, asi que
+        # un error de esquema pasaba como exito y el brief se perdia a medias.
         try:
             res = supabase.table("design_briefs").insert(supabase_data).execute()
         except Exception:
-            # El fallback guarda solo cuatro campos, asi que el resto del brief
-            # se pierde en la fila. Se registra como WARNING para que esa
-            # perdida parcial sea visible y no silenciosa.
-            logger.warning(
-                "Insert completo de design_briefs fallo, usando fallback de 4 campos. "
-                "La fila quedara incompleta",
-                exc_info=True,
+            logger.exception("Insert de design_briefs fallo")
+            raise HTTPException(
+                status_code=500,
+                detail="No se pudo guardar el brief. Por favor intenta mas tarde",
             )
-            try:
-                res = supabase.table("design_briefs").insert({
-                    "client_name": name,
-                    "client_email": email,
-                    "project_type": project_type_value,
-                    "full_data": data_to_save,
-                }).execute()
-            except Exception:
-                logger.exception("Insert de fallback de design_briefs tambien fallo")
-                raise HTTPException(
-                    status_code=500,
-                    detail="No se pudo guardar el brief. Por favor intenta mas tarde",
-                )
 
         brief_id = res.data[0]["id"]
         logger.info("Brief guardado en Supabase: id=%s", brief_id)
