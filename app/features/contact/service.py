@@ -1,10 +1,10 @@
 import logging
-import resend  # type: ignore[import-not-found]
+import resend
 import os
 import uuid
 from app.features.contact.data import ContactData
 from app.models.schemas import ContactMessage
-from fastapi import HTTPException  # type: ignore[import-not-found]
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 

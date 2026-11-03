@@ -5,8 +5,8 @@ from typing import List, Optional
 from functools import lru_cache
 
 # Importaciones de FastAPI
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile # type: ignore[import-not-found]
-from supabase import create_client, Client # type: ignore[import-not-found]
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile
+from supabase import create_client, Client
 from app.features.briefs.labels import TIMELINE_LABELS, label
 from app.models.brief import BriefSubmission, ScopeLevel
 
