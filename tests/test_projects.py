@@ -1,6 +1,5 @@
 """GET /projects: ambos idiomas, forma de la respuesta y validacion de lang."""
 
-import pytest
 
 EXPECTED_KEYS = {
     "id",
@@ -48,11 +47,6 @@ def test_projects_response_shape(client):
         assert isinstance(project["technologies"], list)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Issue 0.9 / tarea 7.3: lang no se valida (service.py:21); un valor "
-    "distinto de es/en levanta KeyError y vuelve como 500 generico en vez de 422",
-)
 def test_projects_rejects_unknown_lang(client):
     response = client.get("/projects", params={"lang": "fr"})
     assert response.status_code == 422

@@ -1,50 +1,24 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
-from typing import List, Optional, Union
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional
 import json
 from enum import Enum
 
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
-class ProjectType(str, Enum):
-    website = "website"
-    landing = "landing"
-    web_app = "web_app"
-    dashboard = "dashboard"
-    redesign = "redesign"
-    other = "other"
-
-
-class BudgetRange(str, Enum):
-    r1 = "r1"
-    r2 = "r2"
-    r3 = "r3"
-    r4 = "r4"
-    not_defined = "not_defined"
-
-
-class DesignStatus(str, Enum):
-    ready = "ready"
-    brand_kit = "brand_kit"
-    none = "none"
-
-
+# Solo ScopeLevel: los enums de tipo/presupuesto/diseño/timeline no se pueden
+# usar como tipo de campo porque el frontend manda '' como estado sin elegir y
+# el router lo mapea a defaults; validar contra el enum rechazaria esos envios.
 class ScopeLevel(str, Enum):
     basic = "basic"
     medium = "medium"
     advanced = "advanced"
 
 
-class Timeline(str, Enum):
-    asap = "asap"
-    one_month = "one_month"
-    one_3_months = "one_3_months"
-    two_three_months = "two_three_months"
-    flexible = "flexible"
-
-
 # ─── Modelo ───────────────────────────────────────────────────────────────────
 class BriefSubmission(BaseModel):
-    model_config = ConfigDict(extra="allow") 
+    # Sin extra="allow": todo lo que el router guarda en data_to_save esta
+    # declarado abajo, asi que un campo no declarado ya no se cuela al PDF ni
+    # al correo (los extras del multipart los ignora FastAPI antes de llegar).
 
     @field_validator('files', mode='before')
     @classmethod
@@ -110,6 +84,9 @@ class BriefSubmission(BaseModel):
     budget: Optional[str] = None
     timeline: Optional[str] = None
     flexibleBudget: bool = False
+    # Mismo tipo y default que el Form del router; antes llegaba al modelo
+    # solo gracias a extra="allow".
+    currency: str = "USD"
     additionalNotes: Optional[str] = None
 
     # Paso 6 — Archivos

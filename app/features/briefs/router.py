@@ -1,9 +1,9 @@
 import logging
-import asyncio
-from typing import List, Optional
+from typing import List
 
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile
+from pydantic import EmailStr
 from supabase import Client
 from app.features.briefs.labels import TIMELINE_LABELS, label
 from app.models.brief import BriefSubmission, ScopeLevel
@@ -18,35 +18,41 @@ router = APIRouter()
 @router.post("/send-brief")
 async def handle_brief(
     background_tasks: BackgroundTasks,
-    name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(""),
-    company: str = Form(""),
-    projectName: str = Form(""),
-    projectType: str = Form(...),
-    projectDescription: str = Form(...),
+    # Topes de longitud en la frontera HTTP, no en BriefSubmission: el modelo
+    # se construye DESPUES del insert, asi que un tope ahi llegaria tarde. Un
+    # campo pasado de largo es 422 antes de guardar o enviar nada. Bandas:
+    # name 100 (igual que el zod del frontend), texto corto 200, texto largo
+    # 5000, URLs 2048 (200 cortaria enlaces reales de Figma o de un sitio).
+    name: str = Form(..., max_length=100),
+    # EmailStr, igual que /contact: un correo malformado es 422 antes de tocar
+    # la base. El formulario ya valida con zod, esto cubre el POST directo.
+    email: EmailStr = Form(...),
+    phone: str = Form("", max_length=200),
+    company: str = Form("", max_length=200),
+    projectName: str = Form("", max_length=200),
+    projectType: str = Form(..., max_length=200),
+    projectDescription: str = Form(..., max_length=5000),
     hasExistingSite: bool = Form(False),
-    existingSiteUrl: str = Form(""),
+    existingSiteUrl: str = Form("", max_length=2048),
     features: List[str] = Form(...),
-    featuresDetail: str = Form(""),
-    targetAudience: str = Form(""),
-    competitors: str = Form(""),
-    visualStyle: str = Form(""),
-    visualReferences: str = Form(""),
-    brandColors: str = Form(""),
-    brandAssetsReady: str = Form("false"),
-    designStatus: str = Form(""),
-    designLink: str = Form(""),
-    wantsDesignQuote: str = Form("false"),
-    scopeLevel: str = Form(""),
-    scopeWeight: str = Form(""),
-    budget: str = Form(...),
-    timeline: str = Form(...),
-    flexibleBudget: str = Form("false"),
-    currency: str = Form("USD"),
-    additionalNotes: str = Form(""),
-    locale: str = Form("en"),
-    referenceLinks: str = Form(""),
+    featuresDetail: str = Form("", max_length=5000),
+    targetAudience: str = Form("", max_length=5000),
+    competitors: str = Form("", max_length=5000),
+    visualStyle: str = Form("", max_length=200),
+    visualReferences: str = Form("", max_length=5000),
+    brandColors: str = Form("", max_length=200),
+    brandAssetsReady: str = Form("false", max_length=200),
+    designStatus: str = Form("", max_length=200),
+    designLink: str = Form("", max_length=2048),
+    wantsDesignQuote: str = Form("false", max_length=200),
+    scopeLevel: str = Form("", max_length=200),
+    scopeWeight: str = Form("", max_length=200),
+    budget: str = Form(..., max_length=200),
+    timeline: str = Form(..., max_length=200),
+    flexibleBudget: str = Form("false", max_length=200),
+    currency: str = Form("USD", max_length=200),
+    additionalNotes: str = Form("", max_length=5000),
+    locale: str = Form("en", max_length=200),
     attachments: List[UploadFile] = File(None),
     supabase: Client = Depends(get_supabase),
 ):
@@ -146,7 +152,6 @@ async def handle_brief(
             "currency": currency_value,
             "additionalNotes": additionalNotes,
             "locale": locale,
-            "referenceLinks": referenceLinks,
         }
 
         # 2. Guardar en Supabase
@@ -179,30 +184,17 @@ async def handle_brief(
         # Filter out None values only (keep False booleans)
         supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
         
+        # Sin fallback: si el insert completo falla, el error es ruidoso. El
+        # fallback de 4 campos guardaba filas casi vacias con un 200, asi que
+        # un error de esquema pasaba como exito y el brief se perdia a medias.
         try:
             res = supabase.table("design_briefs").insert(supabase_data).execute()
         except Exception:
-            # El fallback guarda solo cuatro campos, asi que el resto del brief
-            # se pierde en la fila. Se registra como WARNING para que esa
-            # perdida parcial sea visible y no silenciosa.
-            logger.warning(
-                "Insert completo de design_briefs fallo, usando fallback de 4 campos. "
-                "La fila quedara incompleta",
-                exc_info=True,
+            logger.exception("Insert de design_briefs fallo")
+            raise HTTPException(
+                status_code=500,
+                detail="No se pudo guardar el brief. Por favor intenta mas tarde",
             )
-            try:
-                res = supabase.table("design_briefs").insert({
-                    "client_name": name,
-                    "client_email": email,
-                    "project_type": project_type_value,
-                    "full_data": data_to_save,
-                }).execute()
-            except Exception:
-                logger.exception("Insert de fallback de design_briefs tambien fallo")
-                raise HTTPException(
-                    status_code=500,
-                    detail="No se pudo guardar el brief. Por favor intenta mas tarde",
-                )
 
         brief_id = res.data[0]["id"]
         logger.info("Brief guardado en Supabase: id=%s", brief_id)
@@ -219,15 +211,22 @@ async def handle_brief(
         data_to_save["files"] = file_names if file_names else None
 
         # 3. Generar PDF + Enviar correo
-        # IMPORTANTE: Pasamos data_to_save porque 'brief' (Pydantic) ya no se usa aquí
-        # Also pass attachments for email
-        brief_object = BriefSubmission(**data_to_save)
-        result = await BriefService.submit_brief(brief_object, attachments)
-        logger.info("Brief procesado: id=%s", brief_id)
+        # La fila ya existe: un fallo del PDF o del correo despues de guardar
+        # no debe volver como 500, porque el cliente reintentaria y duplicaria
+        # el brief. Igual que /contact, se registra el error sin datos
+        # personales y se responde exito.
+        message = "Brief recibido. Te contactaré pronto."
+        try:
+            brief_object = BriefSubmission(**data_to_save)
+            result = await BriefService.submit_brief(brief_object, attachments)
+            message = result.get("message", message)
+            logger.info("Brief procesado: id=%s", brief_id)
+        except Exception:
+            logger.exception("Brief guardado pero el correo fallo: id=%s", brief_id)
 
         return {
             "status": "success",
-            "message": result.get("message", "Brief guardado correctamente"),
+            "message": message,
             "id": brief_id,
         }
 

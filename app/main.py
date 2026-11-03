@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Literal
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,5 +82,7 @@ def send_message(msg: ContactMessage):
 
 
 @app.get("/projects")
-def get_projects(lang: str = Query("es", description="Language: es or en")):
+# Literal convierte cualquier otro valor en un 422 antes de tocar el servicio;
+# antes un lang desconocido reventaba con KeyError y volvia como 500 generico.
+def get_projects(lang: Literal["es", "en"] = Query("es", description="Language: es or en")):
     return ProjectService.list_projects(lang=lang)
