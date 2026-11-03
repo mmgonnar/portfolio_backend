@@ -127,9 +127,9 @@ def fake_supabase(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def sent_emails(monkeypatch):
-    """Captura todo resend.Emails.send. El servicio de contacto fijo
-    resend.api_key al importar; se reafirma el valor dummy por si el entorno
-    traia uno real."""
+    """Captura todo resend.Emails.send. Ambos servicios leen RESEND_API_KEY
+    por envio (ya con valor dummy desde arriba); se reafirma resend.api_key
+    por si el entorno traia uno real."""
     sent = []
 
     def fake_send(params):
