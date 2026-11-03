@@ -1,6 +1,5 @@
 import logging
-import asyncio
-from typing import List, Optional
+from typing import List
 
 # Importaciones de FastAPI
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Form, File, UploadFile

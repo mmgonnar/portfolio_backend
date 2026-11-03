@@ -1,45 +1,17 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
-from typing import List, Optional, Union
+from typing import List, Optional
 import json
 from enum import Enum
 
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
-class ProjectType(str, Enum):
-    website = "website"
-    landing = "landing"
-    web_app = "web_app"
-    dashboard = "dashboard"
-    redesign = "redesign"
-    other = "other"
-
-
-class BudgetRange(str, Enum):
-    r1 = "r1"
-    r2 = "r2"
-    r3 = "r3"
-    r4 = "r4"
-    not_defined = "not_defined"
-
-
-class DesignStatus(str, Enum):
-    ready = "ready"
-    brand_kit = "brand_kit"
-    none = "none"
-
-
+# Solo ScopeLevel: los enums de tipo/presupuesto/diseño/timeline no se pueden
+# usar como tipo de campo porque el frontend manda '' como estado sin elegir y
+# el router lo mapea a defaults; validar contra el enum rechazaria esos envios.
 class ScopeLevel(str, Enum):
     basic = "basic"
     medium = "medium"
     advanced = "advanced"
-
-
-class Timeline(str, Enum):
-    asap = "asap"
-    one_month = "one_month"
-    one_3_months = "one_3_months"
-    two_three_months = "two_three_months"
-    flexible = "flexible"
 
 
 # ─── Modelo ───────────────────────────────────────────────────────────────────
