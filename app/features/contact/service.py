@@ -1,18 +1,19 @@
-import resend # type: ignore[import-not-found]
+import logging
+import resend
 import os
 import uuid
 from app.features.contact.data import ContactData
 from app.models.schemas import ContactMessage
-from fastapi import HTTPException # type: ignore[import-not-found]
+from fastapi import HTTPException
 
-# Cargamos la API Key una sola vez
-resend.api_key = os.getenv("RESEND_API_KEY")
+logger = logging.getLogger(__name__)
+
 
 class ContactService:
     @staticmethod
     def submit_contact(message: ContactMessage):
         if message.phone_extension:
-            print("Bot detectado por honeypot")
+            logger.info("Contacto descartado por honeypot")
             return {"status": "success", "message": "Processed"}
 
         ticket_id = f"REF-{str(uuid.uuid4())[:8].upper()}"
@@ -20,13 +21,18 @@ class ContactService:
         try:
             data = ContactData.save(message)
 
-            if resend.api_key:
+            # La clave se lee por envio, igual que en el servicio del brief,
+            # asi que un cambio en el entorno no exige reiniciar el proceso.
+            api_key = os.environ.get("RESEND_API_KEY")
+            if api_key:
+                resend.api_key = api_key
                 try:
-                    resend.Emails.send({
-                        "from": "Portfolio <contacto@mmgonnar.com>",
-                        "to": "mm.gonnar+portafolio@gmail.com",
-                        "subject": f"[{ticket_id}] Nuevo mensaje de {message.name}",
-                        "html": f"""
+                    resend.Emails.send(
+                        {
+                            "from": "Portfolio <contacto@mmgonnar.com>",
+                            "to": "mm.gonnar+portafolio@gmail.com",
+                            "subject": f"[{ticket_id}] Nuevo mensaje de {message.name}",
+                            "html": f"""
                             <h3>Nuevo contacto desde mmgonnar.com</h3>
                             <p><strong>De:</strong> {message.name} ({message.email})</p>
                             <p><strong>Referencia:</strong> {ticket_id}</p>
@@ -35,22 +41,19 @@ class ContactService:
                             <p style="white-space: pre-wrap;">{message.message}</p>
                             <hr />
                             <small>Este mensaje fue guardado en la base de datos con éxito.</small>
-                        """
-                    })
-                except Exception as mail_error:
-                    print(f"Error enviando correo con Resend: {mail_error}")
+                        """,
+                        }
+                    )
+                except Exception:
+                    logger.exception("Error enviando el correo de contacto")
             else:
-                print("Advertencia: RESEND_API_KEY no configurada.")
+                logger.warning("RESEND_API_KEY no configurada, correo no enviado")
 
-            return {
-                "status": "success", 
-                "data": data, 
-                "ticket_id": ticket_id
-            }
-            
-        except Exception as e:
-            print(f"Error crítico en submit_contact: {e}")
+            return {"status": "success", "data": data, "ticket_id": ticket_id}
+
+        except Exception:
+            logger.exception("Error critico en submit_contact")
             raise HTTPException(
-                status_code=500, 
-                detail="No se pudo procesar el mensaje internamente. Por favor intente mas tarde"
+                status_code=500,
+                detail="No se pudo procesar el mensaje internamente. Por favor intente mas tarde",
             )

@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr  # type: ignore[import-not-found]
+from pydantic import BaseModel, EmailStr
 from typing import Optional
+
 
 class ContactMessage(BaseModel):
     name: str
@@ -7,11 +8,16 @@ class ContactMessage(BaseModel):
     message: str
     phone_extension: Optional[str] = None
 
-class Projects(BaseModel):
-    id: Optional[int] = None
+
+class ProjectResponse(BaseModel):
+    id: str
     title: str
     description: str
+    architecture: str
+    technical_details: str
     image_url: str
-    tech_stack: list[str]
-    github_url: Optional[str] = None
-    demo_url: Optional[str] = None
+    logo_url: Optional[str] = None
+    repository_url: Optional[str] = None
+    live_url: Optional[str] = None
+    technologies: list[str]
+    created_at: str
