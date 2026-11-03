@@ -66,8 +66,6 @@ supabase_migration_brief_restructure.sql
                                Daily cron that pings Supabase so the free project is not paused
 Procfile                       Render start command
 BACKEND_FIELDS.md              Field by field contract for the brief form
-PROJECT_SUMMARY.md             Older working notes, superseded by this file
-test_file_upload.py            Ad hoc manual script against a local server, not a test suite
 ```
 
 The layout convention is one folder per feature under `app/features/`, split into `router` (HTTP),
