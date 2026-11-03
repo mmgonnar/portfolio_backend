@@ -1,5 +1,5 @@
 import os
-import resend  # type: ignore[import-not-found]
+import resend
 import logging
 
 from datetime import datetime, timezone

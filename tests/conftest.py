@@ -26,7 +26,7 @@ from fastapi.testclient import TestClient
 import app.main as app_main
 import app.features.contact.data as contact_data
 import app.features.projects.data as projects_data
-from app.features.briefs.router import get_supabase
+from app.db.supabase_client import get_supabase
 
 # Filas con la forma que ProjectService espera de la tabla projects. id y
 # created_at van como texto porque ProjectResponse los tipa str hoy (issue de
@@ -127,9 +127,9 @@ def fake_supabase(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def sent_emails(monkeypatch):
-    """Captura todo resend.Emails.send. El servicio de contacto fijo
-    resend.api_key al importar; se reafirma el valor dummy por si el entorno
-    traia uno real."""
+    """Captura todo resend.Emails.send. Ambos servicios leen RESEND_API_KEY
+    por envio (ya con valor dummy desde arriba); se reafirma resend.api_key
+    por si el entorno traia uno real."""
     sent = []
 
     def fake_send(params):

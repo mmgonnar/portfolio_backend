@@ -1,8 +1,8 @@
 import logging
 import os
 
-from fastapi import FastAPI, Query  # type: ignore[import-not-found]
-from fastapi.middleware.cors import CORSMiddleware  # type: ignore[import-not-found]
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from app.features.projects.service import ProjectService
 from app.models.schemas import ContactMessage
 

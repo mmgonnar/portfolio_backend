@@ -1,4 +1,4 @@
-from fpdf import FPDF  # type: ignore[import-not-found]
+from fpdf import FPDF
 from app.features.briefs.labels import (
     DESIGN_STATUS_LABELS,
     PROJECT_TYPE_LABELS,

@@ -1,15 +1,12 @@
 import logging
-import resend  # type: ignore[import-not-found]
+import resend
 import os
 import uuid
 from app.features.contact.data import ContactData
 from app.models.schemas import ContactMessage
-from fastapi import HTTPException  # type: ignore[import-not-found]
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
-
-# Cargamos la API Key una sola vez
-resend.api_key = os.getenv("RESEND_API_KEY")
 
 
 class ContactService:
@@ -24,7 +21,11 @@ class ContactService:
         try:
             data = ContactData.save(message)
 
-            if resend.api_key:
+            # La clave se lee por envio, igual que en el servicio del brief,
+            # asi que un cambio en el entorno no exige reiniciar el proceso.
+            api_key = os.environ.get("RESEND_API_KEY")
+            if api_key:
+                resend.api_key = api_key
                 try:
                     resend.Emails.send(
                         {

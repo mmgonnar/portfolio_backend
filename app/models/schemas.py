@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr  # type: ignore[import-not-found]
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 

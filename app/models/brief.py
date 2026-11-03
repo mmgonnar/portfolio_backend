@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict  # type: ignore[import-not-found]
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import List, Optional, Union
 import json
 from enum import Enum
