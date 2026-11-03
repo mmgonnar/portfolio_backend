@@ -300,6 +300,27 @@ gunicorn -w 2 -k uvicorn.workers.UvicornWorker app.main:app
 
 ---
 
+## Running the tests
+
+Test dependencies live in `requirements-dev.txt` (which pulls in `requirements.txt`); they are
+kept out of `requirements.txt` because Render installs that one.
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The suite under `tests/` needs no `.env` and no running server: it sets dummy values for the
+required environment variables before importing the app, replaces the Supabase client with a fake
+and captures `resend.Emails.send`, so no test can touch the database or send an email even when
+real credentials are present in the environment.
+
+Tests marked `xfail` document known bugs (the 0.9 issues list) and the pending 7.2 upload limits
+as tests of the correct behavior. They count as expected failures today; once the fix lands, the
+test starts passing, strict mode flags it, and the marker comes off.
+
+---
+
 ## Environment variables
 
 Names are taken from the code. Copy `.env.example` to `.env` and fill it in. Never commit `.env`;
