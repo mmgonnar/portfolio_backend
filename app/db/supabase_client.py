@@ -12,3 +12,10 @@ if not url or not key:
     raise ValueError("Faltan las credenciales de Supabase en el archivo .env")
 
 supabase: Client = create_client(url, key)
+
+
+def get_supabase() -> Client:
+    # Dependencia de FastAPI sobre el unico cliente compartido, creado arriba
+    # al importar. Existe para que los tests lo sustituyan con
+    # dependency_overrides sin tocar el cliente real.
+    return supabase

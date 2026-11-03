@@ -26,7 +26,7 @@ from fastapi.testclient import TestClient
 import app.main as app_main
 import app.features.contact.data as contact_data
 import app.features.projects.data as projects_data
-from app.features.briefs.router import get_supabase
+from app.db.supabase_client import get_supabase
 
 # Filas con la forma que ProjectService espera de la tabla projects. id y
 # created_at van como texto porque ProjectResponse los tipa str hoy (issue de

@@ -328,8 +328,8 @@ it is gitignored.
 
 | Variable | Required | Read in | Purpose |
 |---|---|---|---|
-| `SUPABASE_URL` | yes | `app/db/supabase_client.py`, `app/features/briefs/router.py` | Supabase project REST URL |
-| `SUPABASE_KEY` | yes | same two files | Supabase API key. Use the anon key. |
+| `SUPABASE_URL` | yes | `app/db/supabase_client.py` | Supabase project REST URL |
+| `SUPABASE_KEY` | yes | same file | Supabase API key. Use the anon key. |
 | `RESEND_API_KEY` | no | `app/features/briefs/service.py`, `app/features/contact/service.py` | Resend API key. When absent, both endpoints log a warning and skip the email instead of failing. |
 | `LOG_LEVEL` | no | `app/main.py` | Root log level, default `INFO`. Without the `logging.basicConfig` call in `main.py` the app loggers emit nothing, because the root logger defaults to `WARNING`. |
 
