@@ -219,15 +219,22 @@ async def handle_brief(
         data_to_save["files"] = file_names if file_names else None
 
         # 3. Generar PDF + Enviar correo
-        # IMPORTANTE: Pasamos data_to_save porque 'brief' (Pydantic) ya no se usa aquí
-        # Also pass attachments for email
-        brief_object = BriefSubmission(**data_to_save)
-        result = await BriefService.submit_brief(brief_object, attachments)
-        logger.info("Brief procesado: id=%s", brief_id)
+        # La fila ya existe: un fallo del PDF o del correo despues de guardar
+        # no debe volver como 500, porque el cliente reintentaria y duplicaria
+        # el brief. Igual que /contact, se registra el error sin datos
+        # personales y se responde exito.
+        message = "Brief recibido. Te contactaré pronto."
+        try:
+            brief_object = BriefSubmission(**data_to_save)
+            result = await BriefService.submit_brief(brief_object, attachments)
+            message = result.get("message", message)
+            logger.info("Brief procesado: id=%s", brief_id)
+        except Exception:
+            logger.exception("Brief guardado pero el correo fallo: id=%s", brief_id)
 
         return {
             "status": "success",
-            "message": result.get("message", "Brief guardado correctamente"),
+            "message": message,
             "id": brief_id,
         }
 

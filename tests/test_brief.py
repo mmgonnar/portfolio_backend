@@ -55,12 +55,6 @@ def test_brief_rejects_malformed_email(client, fake_supabase):
     assert fake_supabase.inserts == {}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Issue 0.9 / revisar con 2.4: brief guardado pero correo fallido "
-    "devuelve 500 (service.py:99, router.py:234); el cliente reintenta y "
-    "duplica la fila. Guardado exitoso debe responder exito",
-)
 def test_brief_saved_but_email_failed_still_returns_success(
     client, fake_supabase, monkeypatch
 ):
